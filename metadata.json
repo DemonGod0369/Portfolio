@@ -1,0 +1,6 @@
+{
+  "name": "Gunjan Shrestha Platform",
+  "description": "Personal digital identity platform and private content management system for Gunjan Shrestha.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
