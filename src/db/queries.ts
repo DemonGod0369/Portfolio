@@ -242,8 +242,20 @@ export async function getPublicPortfolioData() {
       siteSettings: settingsList[0] || initialSiteSetting,
     };
   } catch (error) {
-    console.error('Error fetching public portfolio data:', error);
-    throw new Error('Database query failed. Please try again later.', { cause: error });
+    console.warn('PostgreSQL not accessible or not configured, returning initial portfolio data fallback:', error?.message || error);
+    return {
+      profile: initialProfile,
+      experiences: initialExperiences,
+      educations: initialEducations,
+      skillCategories: initialSkillCategories,
+      skills: initialSkills,
+      services: initialServices,
+      projects: initialProjects,
+      galleryImages: initialGalleryImages,
+      blogPosts: initialBlogPosts,
+      socialLinks: initialSocialLinks,
+      siteSettings: initialSiteSetting,
+    };
   }
 }
 
