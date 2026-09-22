@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express, { Request, Response } from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { seedDatabaseIfEmpty, getPublicPortfolioData, submitContactMessage, createAuditEntry } from './src/db/queries.ts';
+import { createAuditEntry, getPublicPortfolioData, submitContactMessage } from './src/db/queries';
 
 async function startServer() {
   const app = express();
@@ -10,7 +10,7 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
-  // Initialize DB seeding asynchronously (Optional / on-demand)
+  // Initialize DB seeding asynchronously
   // seedDatabaseIfEmpty().catch((err) => {
   //   console.warn('Initial DB check/seeding note (DB optional):', err?.message || err);
   // });

@@ -1,4 +1,3 @@
-import { db } from './index.ts';
 import * as schema from './schema.ts';
 import { eq, desc, asc } from 'drizzle-orm';
 import {
@@ -14,6 +13,7 @@ import {
   initialSocialLinks,
   initialSiteSetting
 } from '../data/initialData';
+import { db } from '../index.ts';
 
 // Seeding helper to guarantee the PostgreSQL database is populated with Gunjan's verified data
 export async function seedDatabaseIfEmpty() {
