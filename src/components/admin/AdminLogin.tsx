@@ -4,8 +4,8 @@ import { Shield, Lock, Mail, ArrowRight, AlertCircle, ArrowLeft } from 'lucide-r
 
 export const AdminLogin: React.FC = () => {
   const { adminLogin, setCurrentRoute, currentAdminUser } = useData();
-  const [email, setEmail] = useState(currentAdminUser?.email || 'gunjanstha01@gmail.com');
-  const [password, setPassword] = useState('gunjan2026');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -60,7 +60,7 @@ export const AdminLogin: React.FC = () => {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="gunjanstha01@gmail.com"
+                placeholder="admin@example.com"
                 className="w-full px-4 py-3 bg-[#080808] border border-[#262626] focus:border-[#c6a87d] text-[#F5F5F5] placeholder-[#444444] rounded-sm text-sm focus:outline-none transition-colors"
               />
               <Mail className="w-4 h-4 text-[#666666] absolute right-3.5 top-3.5" />
@@ -82,12 +82,6 @@ export const AdminLogin: React.FC = () => {
               />
               <Lock className="w-4 h-4 text-[#666666] absolute right-3.5 top-3.5" />
             </div>
-          </div>
-
-          <div className="p-3 bg-[#080808] border border-[#1c1c1c] rounded-sm space-y-1 text-[11px] font-mono text-[#666666]">
-            <p className="text-[#969696] font-medium">Authorized Administrator Access:</p>
-            <p>Email: <span className="text-[#c6a87d]">{currentAdminUser?.email || 'gunjanstha01@gmail.com'}</span></p>
-            <p>Demo Password: <span className="text-[#c6a87d]">gunjan2026</span></p>
           </div>
 
           <button

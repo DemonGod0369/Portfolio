@@ -10,10 +10,10 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
-  // Initialize DB seeding asynchronously
-  seedDatabaseIfEmpty().catch((err) => {
-    console.warn('Initial DB check/seeding note (DB optional):', err?.message || err);
-  });
+  // Initialize DB seeding asynchronously (Optional / on-demand)
+  // seedDatabaseIfEmpty().catch((err) => {
+  //   console.warn('Initial DB check/seeding note (DB optional):', err?.message || err);
+  // });
 
   // Health check
   app.get('/api/health', (req: Request, res: Response) => {
