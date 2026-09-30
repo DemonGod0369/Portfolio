@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     uid TEXT NOT NULL UNIQUE,
     email TEXT NOT NULL UNIQUE,
+    password_hash TEXT,
     is_active BOOLEAN NOT NULL DEFAULT true,
     last_login_at TIMESTAMP,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -396,3 +397,8 @@ VALUES
 ('Instagram', 'Fine Jewellery Atelier', 'https://instagram.com/gunjanfinejewellery', 'instagram', 3, true),
 ('WhatsApp', 'Direct Message', 'https://wa.me/9779800000000', 'message-circle', 4, true)
 ON CONFLICT DO NOTHING;
+
+-- 12. Admin User
+INSERT INTO users (uid, email, password_hash, is_active)
+VALUES ('admin_gunjan', 'gunjanstha01@gmail.com', 'gunjan2026', true)
+ON CONFLICT (email) DO NOTHING;
