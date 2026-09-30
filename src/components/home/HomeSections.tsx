@@ -205,12 +205,18 @@ export const HeroSection: React.FC = () => {
               
               <div className={`relative rounded-2xl overflow-hidden ${isDark ? 'bg-[#0B132B] border-[#1E3A5F]' : 'bg-white border-[#CBD5E1] shadow-2xl'} border p-3.5`}>
                 <div className="relative aspect-[4/5] sm:aspect-[3/4] overflow-hidden rounded-xl bg-[#050814]">
-                  <img
-                    src={profile.profileImageUrl}
-                    alt={profile.name}
-                    className="w-full h-full object-cover object-center transition-all duration-700 transform group-hover:scale-105"
-                    loading="eager"
-                  />
+                  {profile.profileImageUrl ? (
+                    <img
+                      src={profile.profileImageUrl}
+                      alt={profile.name || "Gunjan Shrestha"}
+                      className="w-full h-full object-cover object-center transition-all duration-700 transform group-hover:scale-105"
+                      loading="eager"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-[#050814] flex items-center justify-center text-cyan-400 font-mono text-sm">
+                      GS
+                    </div>
+                  )}
                   <div className={`absolute inset-0 ${isDark ? 'bg-gradient-to-t from-[#050814] via-[#050814]/30 to-transparent opacity-85' : 'bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent'}`} />
                   
                   {/* Floating Security Badge */}
@@ -758,12 +764,18 @@ export const SelectedWorkSection: React.FC = () => {
               <div className="space-y-4">
                 {/* Thumbnail Image */}
                 <div className={`relative aspect-[16/10] overflow-hidden rounded-xl bg-slate-900 border ${isDark ? 'border-[#131F37]' : 'border-slate-200'}`}>
-                  <img
-                    src={project.heroImage}
-                    alt={project.title}
-                    className="w-full h-full object-cover transition-all duration-500 transform group-hover:scale-105"
-                    loading="lazy"
-                  />
+                  {project.heroImage ? (
+                    <img
+                      src={project.heroImage}
+                      alt={project.title}
+                      className="w-full h-full object-cover transition-all duration-500 transform group-hover:scale-105"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-slate-900 flex items-center justify-center text-slate-500 font-mono text-xs">
+                      Case Study
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                   <div className="absolute top-3 left-3">
                     <span className="px-2.5 py-1 rounded-md bg-black/75 backdrop-blur-md border border-cyan-500/30 text-[10px] font-mono uppercase tracking-widest text-[#00E5FF]">

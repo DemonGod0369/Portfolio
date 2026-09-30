@@ -120,7 +120,7 @@ export const AdminLayout: React.FC = () => {
       {/* Mobile Top Bar */}
       <div className="md:hidden flex items-center justify-between p-4 border-b border-[#262626] bg-[#111111]">
         <div className="flex items-center gap-3">
-          {siteSettings.logoUrl ? (
+          {siteSettings.logoUrl && siteSettings.logoUrl.trim() !== '' ? (
             <img
               src={siteSettings.logoUrl}
               alt="Brand Logo"
@@ -153,7 +153,7 @@ export const AdminLayout: React.FC = () => {
           {/* Platform Identity */}
           <div className="flex items-center justify-between border-b border-[#262626] pb-4">
             <div className="flex items-center gap-3.5">
-              {siteSettings.logoUrl ? (
+              {siteSettings.logoUrl && siteSettings.logoUrl.trim() !== '' ? (
                 <img
                   src={siteSettings.logoUrl}
                   alt="Brand Logo"

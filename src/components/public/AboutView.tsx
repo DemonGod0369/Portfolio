@@ -63,12 +63,18 @@ export const AboutView: React.FC = () => {
           {/* Left Column: Portrait & Direct Coordinates */}
           <div className="lg:col-span-4 space-y-6">
             <div className="relative aspect-[4/5] rounded-xl overflow-hidden bg-[#0B132B] border border-[#1E3A5F] shadow-lg group">
-              <img
-                src={profile.profileImageUrl}
-                alt={profile.name}
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
-              />
+              {profile.profileImageUrl ? (
+                <img
+                  src={profile.profileImageUrl}
+                  alt={profile.name || "Gunjan Shrestha"}
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover transition-all duration-500 group-hover:scale-105"
+                />
+              ) : (
+                <div className="w-full h-full bg-[#0B132B] flex items-center justify-center text-[#00E5FF] font-mono text-xl font-bold">
+                  GS
+                </div>
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-[#050814]/80 via-transparent to-transparent pointer-events-none" />
               <div className="absolute bottom-4 left-4 right-4">
                 <p className="text-sm font-bold text-[#F8FAFC] uppercase">{profile.name}</p>

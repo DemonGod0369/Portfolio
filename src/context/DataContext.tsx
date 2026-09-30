@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   Profile, 
   Experience, 
@@ -19,22 +19,55 @@ import {
   AdminTab
 } from '../types';
 import { detectBrowserClientPlatform } from '../utils/browserDetectionUtils';
-import { 
-  initialProfile, 
-  initialExperiences, 
-  initialEducations, 
-  initialSkillCategories, 
-  initialSkills, 
-  initialServices, 
-  initialContentCategories,
-  initialProjects, 
-  initialGalleryImages, 
-  initialBlogPosts, 
-  initialSocialLinks, 
-  initialSiteSetting, 
-  initialContactMessages, 
-  initialAuditLogs 
-} from '../data/initialData';
+
+const emptyProfile: Profile = {
+  id: '',
+  name: 'Gunjan Shrestha',
+  dateOfBirth: '',
+  address: '',
+  headline: 'Multidisciplinary Founder & Operator',
+  shortBio: '',
+  longBio: '',
+  profileImageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
+  visitingCardImageUrl: '',
+  email: 'gunjanstha01@gmail.com',
+  alternateEmail: '',
+  primaryEmailLabel: '',
+  alternateEmailLabel: '',
+  phone: '',
+  secondaryPhone: '',
+  phoneDisplayOption: 'both',
+  whatsappNumber: 'primary',
+  location: 'Kathmandu, Nepal',
+  website: '',
+  languagesSpoken: [],
+  createdAt: '',
+  updatedAt: '',
+};
+
+const emptySiteSetting: SiteSetting = {
+  id: '',
+  siteName: 'Gunjan Shrestha',
+  siteDescription: 'Multidisciplinary Founder & Operator',
+  canonicalUrl: 'https://www.gunjanshrestha.com.np',
+  logoUrl: '',
+  faviconUrl: '',
+  profileImageUrl: '',
+  email: 'gunjanstha01@gmail.com',
+  phone: '',
+  location: 'Kathmandu, Nepal',
+  footerText: 'Gunjan Shrestha. All Rights Reserved.',
+  accentColor: '#c6a87d',
+  maintenanceMode: false,
+  analyticsEnabled: false,
+  defaultSeoTitle: 'Gunjan Shrestha | Founder & Systems Operator',
+  defaultSeoDescription: '',
+  defaultOgImageUrl: '',
+  seoKeywords: '',
+  allowIndexing: true,
+  createdAt: '',
+  updatedAt: '',
+};
 
 interface DataContextType {
   // Navigation & Routing
@@ -47,74 +80,74 @@ interface DataContextType {
   adminActiveTab: AdminTab;
   setAdminActiveTab: (tab: AdminTab) => void;
   
-  // Auth state
+  // Auth state (Cookie-based via /api/auth/*)
   isAdminAuthenticated: boolean;
   adminLogin: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   adminLogout: () => void;
   
-  // Data Entities
+  // Data Entities (Dynamic from PostgreSQL)
   profile: Profile;
-  updateProfile: (updated: Partial<Profile>) => void;
+  updateProfile: (updated: Partial<Profile>) => Promise<void>;
   
   experiences: Experience[];
-  addExperience: (exp: Omit<Experience, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateExperience: (id: string, exp: Partial<Experience>) => void;
-  deleteExperience: (id: string) => void;
+  addExperience: (exp: Omit<Experience, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateExperience: (id: string, exp: Partial<Experience>) => Promise<void>;
+  deleteExperience: (id: string) => Promise<void>;
   
   educations: Education[];
-  addEducation: (edu: Omit<Education, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateEducation: (id: string, edu: Partial<Education>) => void;
-  deleteEducation: (id: string) => void;
+  addEducation: (edu: Omit<Education, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateEducation: (id: string, edu: Partial<Education>) => Promise<void>;
+  deleteEducation: (id: string) => Promise<void>;
   
   skillCategories: SkillCategory[];
   skills: Skill[];
-  addSkillCategory: (cat: Omit<SkillCategory, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateSkillCategory: (id: string, cat: Partial<SkillCategory>) => void;
-  deleteSkillCategory: (id: string) => void;
-  addSkill: (skill: Omit<Skill, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateSkill: (id: string, skill: Partial<Skill>) => void;
-  deleteSkill: (id: string) => void;
+  addSkillCategory: (cat: Omit<SkillCategory, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateSkillCategory: (id: string, cat: Partial<SkillCategory>) => Promise<void>;
+  deleteSkillCategory: (id: string) => Promise<void>;
+  addSkill: (skill: Omit<Skill, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateSkill: (id: string, skill: Partial<Skill>) => Promise<void>;
+  deleteSkill: (id: string) => Promise<void>;
   
   services: Service[];
-  addService: (srv: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateService: (id: string, srv: Partial<Service>) => void;
-  deleteService: (id: string) => void;
+  addService: (srv: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateService: (id: string, srv: Partial<Service>) => Promise<void>;
+  deleteService: (id: string) => Promise<void>;
   
   projects: Project[];
-  addProject: (proj: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateProject: (id: string, proj: Partial<Project>) => void;
-  deleteProject: (id: string) => void;
+  addProject: (proj: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateProject: (id: string, proj: Partial<Project>) => Promise<void>;
+  deleteProject: (id: string) => Promise<void>;
   
   galleryImages: GalleryImage[];
-  addGalleryImage: (img: Omit<GalleryImage, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateGalleryImage: (id: string, img: Partial<GalleryImage>) => void;
-  deleteGalleryImage: (id: string) => void;
+  addGalleryImage: (img: Omit<GalleryImage, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateGalleryImage: (id: string, img: Partial<GalleryImage>) => Promise<void>;
+  deleteGalleryImage: (id: string) => Promise<void>;
   
   blogPosts: BlogPost[];
-  addBlogPost: (post: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateBlogPost: (id: string, post: Partial<BlogPost>) => void;
-  deleteBlogPost: (id: string) => void;
+  addBlogPost: (post: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateBlogPost: (id: string, post: Partial<BlogPost>) => Promise<void>;
+  deleteBlogPost: (id: string) => Promise<void>;
   
   contentCategories: ContentCategory[];
-  addContentCategory: (cat: Omit<ContentCategory, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateContentCategory: (id: string, cat: Partial<ContentCategory>) => void;
-  deleteContentCategory: (id: string) => void;
+  addContentCategory: (cat: Omit<ContentCategory, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateContentCategory: (id: string, cat: Partial<ContentCategory>) => Promise<void>;
+  deleteContentCategory: (id: string) => Promise<void>;
   
   contactMessages: ContactMessage[];
   submitContactMessage: (msg: { name: string; email: string; subject: string; message: string; honeypot?: string }) => Promise<{ success: boolean; message: string }>;
-  updateContactMessageStatus: (id: string, status: 'NEW' | 'READ' | 'ARCHIVED') => void;
-  deleteContactMessage: (id: string) => void;
+  updateContactMessageStatus: (id: string, status: 'NEW' | 'READ' | 'ARCHIVED') => Promise<void>;
+  deleteContactMessage: (id: string) => Promise<void>;
   
   socialLinks: SocialLink[];
-  updateSocialLinks: (links: SocialLink[]) => void;
-  addSocialLink: (link: Omit<SocialLink, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  updateSocialLink: (id: string, updates: Partial<SocialLink>) => void;
-  deleteSocialLink: (id: string) => void;
+  updateSocialLinks: (links: SocialLink[]) => Promise<void>;
+  addSocialLink: (link: Omit<SocialLink, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  updateSocialLink: (id: string, updates: Partial<SocialLink>) => Promise<void>;
+  deleteSocialLink: (id: string) => Promise<void>;
   
   siteSetting: SiteSetting;
   siteSettings: SiteSetting;
-  updateSiteSetting: (settings: Partial<SiteSetting>) => void;
-  updateSiteSettings: (settings: Partial<SiteSetting>) => void;
+  updateSiteSetting: (settings: Partial<SiteSetting>) => Promise<void>;
+  updateSiteSettings: (settings: Partial<SiteSetting>) => Promise<void>;
   
   auditLogs: AuditLog[];
   
@@ -122,32 +155,32 @@ interface DataContextType {
   currentAdminUser: { email: string; role: string; lastChangedAt?: string };
   adminSessions: AdminSession[];
   currentSessionId: string | null;
-  terminateSession: (sessionId: string) => void;
-  terminateAllOtherSessions: () => void;
+  terminateSession: (sessionId: string) => Promise<void>;
+  terminateAllOtherSessions: () => Promise<void>;
   addSimulatedSession: (session: Partial<AdminSession>) => void;
   updateAdminCredentials: (params: {
     newEmail: string;
     newPassword?: string;
-    currentPassword: string;
+    currentPassword?: string;
     syncWithProfileEmail?: boolean;
   }) => Promise<{ success: boolean; message: string }>;
-  forceLogoutAllSessions: () => void;
+  forceLogoutAllSessions: () => Promise<void>;
 
   // Backup & Reset
-  resetToDefaults: () => void;
-  resetToInitialState: () => void;
+  resetToDefaults: () => Promise<void>;
+  resetToInitialState: () => Promise<void>;
   exportDatabaseBackup: () => string;
   importDatabaseBackup: (jsonString: string) => { success: boolean; message: string };
 
   // Helper aliases
-  updateMessageStatus: (id: string, status: 'NEW' | 'READ' | 'ARCHIVED') => void;
-  deleteMessage: (id: string) => void;
+  updateMessageStatus: (id: string, status: 'NEW' | 'READ' | 'ARCHIVED') => Promise<void>;
+  deleteMessage: (id: string) => Promise<void>;
 
   // Toast feedback
   toastMessage: string | null;
   showToast: (msg: string) => void;
 
-  // Dialog Confirmation Modal (Replaces browser window.confirm blocked by iframes)
+  // Dialog Confirmation Modal
   confirmModal: {
     isOpen: boolean;
     title: string;
@@ -168,7 +201,13 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-const STORAGE_PREFIX = 'gunjan_platform_';
+// Helper for requests carrying HTTP-only cookie
+function apiFetch(url: string, options: RequestInit = {}) {
+  return fetch(url, {
+    ...options,
+    credentials: 'include',
+  });
+}
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Navigation
@@ -214,15 +253,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setConfirmModal(prev => ({ ...prev, isOpen: false }));
   };
 
-  // Authentication (single admin model with session)
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(() => {
-    try {
-      if (typeof window === 'undefined' || !window.localStorage) return false;
-      const savedAuth = localStorage.getItem(`${STORAGE_PREFIX}auth_session`);
-      return savedAuth === 'active_authenticated';
-    } catch {
-      return false;
-    }
+  // Authentication session (Driven exclusively by HTTP-only cookie and /api/auth/me)
+  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+  const [currentAdminUser, setCurrentAdminUser] = useState<{ email: string; role: string; lastChangedAt?: string }>({
+    email: 'gunjanstha01@gmail.com',
+    role: 'Super Administrator',
   });
 
   const showToast = (msg: string) => {
@@ -241,857 +276,966 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Safe helper to write to storage without throwing unhandled exceptions
-  const safeSetItem = (key: string, val: any) => {
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(val));
-      }
-    } catch (e) {
-      console.warn(`[Storage] Failed to persist ${key}:`, e);
-    }
-  };
+  // Dynamic entities fetched directly from PostgreSQL database
+  const [profile, setProfile] = useState<Profile>(emptyProfile);
+  const [experiences, setExperiences] = useState<Experience[]>([]);
+  const [educations, setEducations] = useState<Education[]>([]);
+  const [skillCategories, setSkillCategories] = useState<SkillCategory[]>([]);
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [contentCategories, setContentCategories] = useState<ContentCategory[]>([]);
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>([]);
+  const [siteSetting, setSiteSetting] = useState<SiteSetting>(emptySiteSetting);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [adminSessions, setAdminSessions] = useState<AdminSession[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
-  // Helper loader for local storage with intelligent defaults merging for array collections
-  const loadState = <T,>(key: string, defaultVal: T): T => {
+  // Load public portfolio data from PostgreSQL
+  const loadPublicData = useCallback(async () => {
     try {
-      if (typeof window === 'undefined' || !window.localStorage) return defaultVal;
-      const saved = localStorage.getItem(`${STORAGE_PREFIX}${key}`);
-      if (!saved) return defaultVal;
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(defaultVal) && Array.isArray(parsed)) {
-        // If defaultVal has items not present in saved state by id, append them gracefully
-        const existingIds = new Set(parsed.map((item: any) => item?.id).filter(Boolean));
-        const missingDefaults = (defaultVal as any[]).filter(item => item?.id && !existingIds.has(item.id));
-        if (missingDefaults.length > 0) {
-          return [...parsed, ...missingDefaults] as unknown as T;
+      const res = await apiFetch('/api/portfolio/public');
+      const json = await res.json();
+      if (json.success && json.data) {
+        if (json.data.profile) setProfile(json.data.profile);
+        if (json.data.experiences) setExperiences(json.data.experiences);
+        if (json.data.educations) setEducations(json.data.educations);
+        if (json.data.skillCategories) setSkillCategories(json.data.skillCategories);
+        if (json.data.skills) setSkills(json.data.skills);
+        if (json.data.services) setServices(json.data.services);
+        if (json.data.projects) setProjects(json.data.projects);
+        if (json.data.galleryImages) setGalleryImages(json.data.galleryImages);
+        if (json.data.blogPosts) setBlogPosts(json.data.blogPosts);
+        if (json.data.contentCategories) setContentCategories(json.data.contentCategories);
+        if (json.data.socialLinks) setSocialLinks(json.data.socialLinks);
+        if (json.data.siteSettings) setSiteSetting(json.data.siteSettings);
+      }
+    } catch (err) {
+      console.warn('Could not load public data from backend, using current state:', err);
+    }
+  }, []);
+
+  // Load complete admin portfolio data (including drafts, messages, audit logs)
+  const loadAdminData = useCallback(async () => {
+    try {
+      const res = await apiFetch('/api/portfolio/admin');
+      const json = await res.json();
+      if (json.success && json.data) {
+        if (json.data.profile) setProfile(json.data.profile);
+        if (json.data.experiences) setExperiences(json.data.experiences);
+        if (json.data.educations) setEducations(json.data.educations);
+        if (json.data.skillCategories) setSkillCategories(json.data.skillCategories);
+        if (json.data.skills) setSkills(json.data.skills);
+        if (json.data.services) setServices(json.data.services);
+        if (json.data.projects) setProjects(json.data.projects);
+        if (json.data.galleryImages) setGalleryImages(json.data.galleryImages);
+        if (json.data.blogPosts) setBlogPosts(json.data.blogPosts);
+        if (json.data.contentCategories) setContentCategories(json.data.contentCategories);
+        if (json.data.socialLinks) setSocialLinks(json.data.socialLinks);
+        if (json.data.siteSettings) setSiteSetting(json.data.siteSettings);
+        if (json.data.contactMessages) setContactMessages(json.data.contactMessages);
+        if (json.data.auditLogs) setAuditLogs(json.data.auditLogs);
+        if (json.data.adminSessions) setAdminSessions(json.data.adminSessions);
+        if (json.data.adminUser) {
+          setCurrentAdminUser(prev => ({ ...prev, email: json.data.adminUser.email }));
         }
       }
-      return parsed;
-    } catch {
-      return defaultVal;
+    } catch (err) {
+      console.error('Failed to load admin data:', err);
     }
-  };
+  }, []);
 
-  // State Entities
-  const [profile, setProfile] = useState<Profile>(() => {
-    const loaded = loadState('profile', initialProfile);
-    if (!loaded.headline || loaded.headline.includes('different experiences, one perspective')) {
-      return initialProfile;
-    }
-    return loaded;
-  });
-  const [experiences, setExperiences] = useState<Experience[]>(() => {
-    const loaded = loadState('experiences', initialExperiences);
-    // If previously loaded old experiences or contains generic names
-    if (!loaded.length || loaded.some(e => e.organization?.includes('Technology Foundation'))) {
-      return initialExperiences;
-    }
-    // Clean any legacy numeric sequence prefixes like "01 — " or "02 — "
-    return loaded.map(e => ({
-      ...e,
-      category: e.category ? e.category.replace(/^\d+[\s—\-\.\:]+\s*/, '') : e.category
-    }));
-  });
-  const [educations, setEducations] = useState<Education[]>(() => loadState('educations', initialEducations));
-  const [skillCategories, setSkillCategories] = useState<SkillCategory[]>(() => loadState('skill_categories', initialSkillCategories));
-  const [skills, setSkills] = useState<Skill[]>(() => loadState('skills', initialSkills));
-  const [services, setServices] = useState<Service[]>(() => loadState('services', initialServices));
-  const [projects, setProjects] = useState<Project[]>(() => loadState('projects', initialProjects));
-  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>(() => loadState('gallery', initialGalleryImages));
-  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(() => loadState('blog_posts', initialBlogPosts));
-  const [contentCategories, setContentCategories] = useState<ContentCategory[]>(() => loadState('content_categories', initialContentCategories));
-  const [contactMessages, setContactMessages] = useState<ContactMessage[]>(() => loadState('contact_messages', initialContactMessages));
-  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(() => {
-    const loaded = loadState('social_links', initialSocialLinks);
-    const seen = new Set<string>();
-    const result: SocialLink[] = [];
+  // Initial authentication check via HTTP-only cookie on mount
+  useEffect(() => {
+    apiFetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.authenticated && data.user) {
+          setIsAdminAuthenticated(true);
+          setCurrentAdminUser({ email: data.user.email, role: data.user.role || 'Super Administrator' });
+          loadAdminData();
+        } else {
+          setIsAdminAuthenticated(false);
+          loadPublicData();
+        }
+      })
+      .catch(() => {
+        setIsAdminAuthenticated(false);
+        loadPublicData();
+      });
+  }, [loadAdminData, loadPublicData]);
 
-    // Deduplicate by platform and ensure exact verified URLs
-    for (const link of loaded) {
-      const p = link.platform.toLowerCase();
-      if (p.includes('linkedin') && !seen.has('linkedin')) {
-        seen.add('linkedin');
-        result.push({
-          ...link,
-          id: 'soc_1',
-          platform: 'LinkedIn',
-          label: 'LinkedIn',
-          url: 'https://www.linkedin.com/in/gunjan-shrestha-8a6597293/',
-          icon: 'Linkedin',
-          displayOrder: 1,
-          published: true,
-        });
-      } else if (p.includes('facebook') && !seen.has('facebook')) {
-        seen.add('facebook');
-        result.push({
-          ...link,
-          id: 'soc_2',
-          platform: 'Facebook',
-          label: 'Facebook',
-          url: 'https://www.facebook.com/Lucifr3r',
-          icon: 'Facebook',
-          displayOrder: 2,
-          published: true,
-        });
-      } else if (p.includes('instagram') && !seen.has('instagram')) {
-        seen.add('instagram');
-        result.push({
-          ...link,
-          id: 'soc_3',
-          platform: 'Instagram',
-          label: 'Instagram',
-          url: 'https://www.instagram.com/g.s.02/',
-          icon: 'Instagram',
-          displayOrder: 3,
-          published: true,
-        });
-      }
-    }
-
-    if (!seen.has('linkedin')) {
-      result.push(initialSocialLinks[0]);
-    }
-    if (!seen.has('facebook')) {
-      result.push(initialSocialLinks[1]);
-    }
-    if (!seen.has('instagram')) {
-      result.push(initialSocialLinks[2]);
-    }
-
-    return result.sort((a, b) => a.displayOrder - b.displayOrder);
-  });
-  const [siteSetting, setSiteSetting] = useState<SiteSetting>(() => loadState('site_setting', initialSiteSetting));
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() => loadState('audit_logs', initialAuditLogs));
-  const [adminCredentials, setAdminCredentials] = useState<{ email: string; customPassword?: string; lastChangedAt?: string }>(() => {
-    return loadState('admin_credentials', {
-      email: 'gunjanstha01@gmail.com',
-      customPassword: '',
-      lastChangedAt: '2026-09-01T00:00:00.000Z',
-    });
-  });
-
-  const defaultSeedSessions: AdminSession[] = [
-    {
-      id: 'sess_macbook_pro',
-      deviceType: 'Desktop',
-      browser: 'Apple Safari v17',
-      os: 'macOS (14.5)',
-      location: 'Kathmandu, NP (MacBook Pro)',
-      screenResolution: '2560 × 1440',
-      createdAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-      lastActiveAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    },
-    {
-      id: 'sess_windows_pc',
-      deviceType: 'Desktop',
-      browser: 'Microsoft Edge v128',
-      os: 'Windows 11',
-      location: 'Lalitpur Workstation (Windows Laptop)',
-      screenResolution: '1920 × 1080',
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
-      lastActiveAt: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-    },
-    {
-      id: 'sess_ios_mobile',
-      deviceType: 'Mobile',
-      browser: 'Mobile Safari',
-      os: 'iOS (iPhone 15)',
-      location: 'Mobile Device (Cellular)',
-      screenResolution: '393 × 852',
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-      lastActiveAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    },
-  ];
-
-  const [currentSessionId, setCurrentSessionId] = useState<string | null>(() => {
-    try {
-      if (typeof window === 'undefined' || !window.localStorage) return null;
-      return localStorage.getItem(`${STORAGE_PREFIX}current_session_id`);
-    } catch {
-      return null;
-    }
-  });
-
-  const [adminSessions, setAdminSessions] = useState<AdminSession[]>(() => {
-    return loadState('admin_sessions', defaultSeedSessions);
-  });
-
-  // Sync to local storage safely
-  useEffect(() => { safeSetItem('profile', profile); }, [profile]);
-  useEffect(() => { safeSetItem('experiences', experiences); }, [experiences]);
-  useEffect(() => { safeSetItem('educations', educations); }, [educations]);
-  useEffect(() => { safeSetItem('skill_categories', skillCategories); }, [skillCategories]);
-  useEffect(() => { safeSetItem('skills', skills); }, [skills]);
-  useEffect(() => { safeSetItem('services', services); }, [services]);
-  useEffect(() => { safeSetItem('projects', projects); }, [projects]);
-  useEffect(() => { safeSetItem('gallery', galleryImages); }, [galleryImages]);
-  useEffect(() => { safeSetItem('blog_posts', blogPosts); }, [blogPosts]);
-  useEffect(() => { safeSetItem('content_categories', contentCategories); }, [contentCategories]);
-  useEffect(() => { safeSetItem('contact_messages', contactMessages); }, [contactMessages]);
-  useEffect(() => { safeSetItem('social_links', socialLinks); }, [socialLinks]);
-  useEffect(() => { safeSetItem('site_setting', siteSetting); }, [siteSetting]);
-  useEffect(() => { safeSetItem('audit_logs', auditLogs); }, [auditLogs]);
-  useEffect(() => { safeSetItem('admin_credentials', adminCredentials); }, [adminCredentials]);
-  useEffect(() => { safeSetItem('admin_sessions', adminSessions); }, [adminSessions]);
-
-  // Keep active session synchronized with real workstation and initialize device ID
+  // Session registration in PostgreSQL
   useEffect(() => {
     if (!isAdminAuthenticated) return;
     const client = detectBrowserClientPlatform();
-    let mySessionId = currentSessionId;
+    const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    setCurrentSessionId(sessionId);
 
-    if (!mySessionId) {
-      mySessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      setCurrentSessionId(mySessionId);
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.setItem(`${STORAGE_PREFIX}current_session_id`, mySessionId);
-        }
-      } catch (err) {}
-    }
-
-    setAdminSessions(prev => {
-      const exists = prev.some(s => s.id === mySessionId);
-      if (exists) {
-        return prev.map(s => s.id === mySessionId ? {
-          ...s,
-          browser: client.browser,
-          os: client.os,
-          deviceType: client.deviceType,
-          screenResolution: client.screenResolution,
-          lastActiveAt: new Date().toISOString(),
-        } : s);
-      } else {
-        const newSession: AdminSession = {
-          id: mySessionId!,
-          deviceType: client.deviceType,
-          browser: client.browser,
-          os: client.os,
-          location: 'Current Workstation (This Device)',
-          screenResolution: client.screenResolution,
-          createdAt: new Date().toISOString(),
-          lastActiveAt: new Date().toISOString(),
-        };
-        return [newSession, ...prev];
-      }
-    });
-  }, [isAdminAuthenticated]);
-
-  // Real-time cross-tab / cross-window session revocation detection
-  useEffect(() => {
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === `${STORAGE_PREFIX}admin_sessions` && e.newValue) {
-        try {
-          const updatedSessions: AdminSession[] = JSON.parse(e.newValue);
-          setAdminSessions(updatedSessions);
-          const myId = localStorage.getItem(`${STORAGE_PREFIX}current_session_id`);
-          if (myId && !updatedSessions.some(s => s.id === myId) && isAdminAuthenticated) {
-            setIsAdminAuthenticated(false);
-            localStorage.removeItem(`${STORAGE_PREFIX}auth_session`);
-            localStorage.removeItem(`${STORAGE_PREFIX}current_session_id`);
-            setCurrentSessionId(null);
-            showToast('Your administrative session was terminated from another device.');
-            setCurrentRoute('admin-login');
-          }
-        } catch (err) {
-          console.warn('Storage sync error', err);
-        }
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [isAdminAuthenticated]);
-
-  // Logging mutation helper
-  const addAuditLog = (action: string, entityType: string, entityId?: string, metadata?: Record<string, any>) => {
-    const newLog: AuditLog = {
-      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-      userId: 'admin_1',
-      userEmail: adminCredentials.email || profile.email || 'gunjanstha01@gmail.com',
-      action,
-      entityType,
-      entityId,
-      metadata,
-      ipHash: 'session_ip_secured',
-      createdAt: new Date().toISOString(),
-    };
-    setAuditLogs(prev => [newLog, ...prev]);
-  };
-
-  // Auth Operations
-  const adminLogin = async (email: string, pass: string): Promise<{ success: boolean; message?: string }> => {
-    // Artificial latency for secure verification feel
-    await new Promise(res => setTimeout(res, 500));
-    
-    // Strict admin credentials verification
-    const normalizedEmail = email.trim().toLowerCase();
-    const authorizedEmail = (adminCredentials.email || profile.email || 'gunjanstha01@gmail.com').toLowerCase();
-
-    const isAuthorizedEmail = normalizedEmail === authorizedEmail || normalizedEmail === 'gunjanstha01@gmail.com';
-    
-    // Custom password match or fallback to default
-    const isPasswordValid = adminCredentials.customPassword
-      ? pass === adminCredentials.customPassword || pass === 'gunjan2026' || pass === 'admin123'
-      : pass === 'gunjan2026' || pass === 'admin123';
-
-    if (isAuthorizedEmail && isPasswordValid) {
-      const client = detectBrowserClientPlatform();
-      const newSessionId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-
-      setIsAdminAuthenticated(true);
-      setCurrentSessionId(newSessionId);
-
-      try {
-        if (typeof window !== 'undefined' && window.localStorage) {
-          localStorage.setItem(`${STORAGE_PREFIX}auth_session`, 'active_authenticated');
-          localStorage.setItem(`${STORAGE_PREFIX}current_session_id`, newSessionId);
-        }
-      } catch (err) {
-        console.warn('Storage error on login', err);
-      }
-
-      const newSession: AdminSession = {
-        id: newSessionId,
+    apiFetch('/api/auth/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: sessionId,
         deviceType: client.deviceType,
-        browser: client.browser,
+        browser: `${client.browser} (Live)`,
         os: client.os,
-        location: 'Current Workstation (This Device)',
-        screenResolution: client.screenResolution,
-        createdAt: new Date().toISOString(),
-        lastActiveAt: new Date().toISOString(),
-      };
+        location: 'Admin Workstation',
+        screenResolution: typeof window !== 'undefined' ? `${window.screen.width} × ${window.screen.height}` : '1920 × 1080',
+      }),
+    }).catch(err => console.warn('Session recording error:', err));
+  }, [isAdminAuthenticated]);
 
-      setAdminSessions(prev => [newSession, ...prev.filter(s => s.id !== newSessionId)]);
-
-      addAuditLog('ADMIN_LOGIN_SUCCESS', 'Session', newSessionId, { 
-        email: normalizedEmail,
-        device: client.deviceType,
-        os: client.os,
-        browser: client.browser,
+  // -------------------------------------------------------------
+  // AUTHENTICATION (Cookie-based)
+  // -------------------------------------------------------------
+  const adminLogin = async (email: string, passwordAttempt: string) => {
+    try {
+      const res = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: passwordAttempt }),
       });
-      showToast('Welcome back, Gunjan.');
-      return { success: true };
-    } else {
-      addAuditLog('ADMIN_LOGIN_FAILED', 'Security', 'attempt', { attemptedEmail: normalizedEmail });
-      return { success: false, message: 'Invalid credentials. Access restricted to authorized administrator.' };
+      const data = await res.json();
+      if (data.success) {
+        setIsAdminAuthenticated(true);
+        setCurrentAdminUser({ email: data.user?.email || email, role: 'Super Administrator' });
+        await loadAdminData();
+        showToast('Authenticated as Administrator.');
+        return { success: true };
+      }
+      return { success: false, message: data.error || 'Authentication failed. Please verify credentials.' };
+    } catch (error: any) {
+      return { success: false, message: 'Server communication error: ' + error.message };
     }
   };
 
-  const terminateSession = (sessionId: string) => {
-    const target = adminSessions.find(s => s.id === sessionId);
-    if (sessionId === currentSessionId) {
-      adminLogout();
-      addAuditLog('ADMIN_TERMINATE_CURRENT_SESSION', 'Session', sessionId, {
-        browser: target?.browser,
-        os: target?.os,
-      });
-      showToast('Current administrative session terminated.');
-      return;
+  const adminLogout = async () => {
+    try {
+      await apiFetch('/api/auth/logout', { method: 'POST' });
+    } catch (err) {
+      console.warn('Logout network error:', err);
     }
-
-    setAdminSessions(prev => prev.filter(s => s.id !== sessionId));
-    addAuditLog('ADMIN_TERMINATE_TARGET_SESSION', 'Session', sessionId, {
-      device: target?.deviceType,
-      os: target?.os,
-      browser: target?.browser,
-      location: target?.location,
-    });
-    showToast(`Revoked session for ${target?.browser || 'Browser'} on ${target?.os || 'Device'}.`);
+    setIsAdminAuthenticated(false);
+    showToast('Signed out of Admin CMS.');
+    setCurrentRoute('home');
   };
 
-  const terminateAllOtherSessions = () => {
-    const otherCount = adminSessions.filter(s => s.id !== currentSessionId).length;
-    setAdminSessions(prev => prev.filter(s => s.id === currentSessionId));
-    addAuditLog('ADMIN_TERMINATE_ALL_OTHER_SESSIONS', 'Session', 'multi_session', {
-      revokedCount: otherCount,
-      retainedSessionId: currentSessionId,
-    });
-    showToast(`Terminated ${otherCount} other active session${otherCount === 1 ? '' : 's'}. Only this device remains active.`);
+  // -------------------------------------------------------------
+  // PROFILE CRUD
+  // -------------------------------------------------------------
+  const updateProfile = async (updated: Partial<Profile>) => {
+    try {
+      const res = await apiFetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updated),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setProfile(json.data);
+        showToast('Profile updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update profile.');
+      }
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      showToast('Error updating profile in database.');
+    }
   };
 
-  const addSimulatedSession = (sessionData: Partial<AdminSession>) => {
-    const newId = `sess_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-    const newSession: AdminSession = {
-      id: newId,
-      deviceType: sessionData.deviceType || 'Desktop',
-      browser: sessionData.browser || 'Google Chrome v128',
-      os: sessionData.os || 'Windows 11',
-      location: sessionData.location || 'Remote Workstation',
-      screenResolution: sessionData.screenResolution || '1920 × 1080',
+  // -------------------------------------------------------------
+  // EXPERIENCES CRUD
+  // -------------------------------------------------------------
+  const addExperience = async (exp: Omit<Experience, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await apiFetch('/api/experiences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(exp),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setExperiences(prev => [json.data, ...prev]);
+        showToast('Career milestone saved to PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to save experience.');
+      }
+    } catch (error) {
+      console.error('Failed to create experience:', error);
+      showToast('Error saving experience to database.');
+    }
+  };
+
+  const updateExperience = async (id: string, updates: Partial<Experience>) => {
+    try {
+      const res = await apiFetch(`/api/experiences/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setExperiences(prev => prev.map(e => e.id === id ? json.data : e));
+        showToast('Experience updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update experience.');
+      }
+    } catch (error) {
+      console.error('Failed to update experience:', error);
+      showToast('Error updating experience in database.');
+    }
+  };
+
+  const deleteExperience = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/experiences/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setExperiences(prev => prev.filter(e => e.id !== id));
+        showToast('Experience removed from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete experience.');
+      }
+    } catch (error) {
+      console.error('Failed to delete experience:', error);
+      showToast('Error removing experience from database.');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // EDUCATIONS CRUD
+  // -------------------------------------------------------------
+  const addEducation = async (edu: Omit<Education, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await apiFetch('/api/educations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(edu),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setEducations(prev => [...prev, json.data]);
+        showToast('Education record saved to PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to save education.');
+      }
+    } catch (error) {
+      console.error('Failed to create education:', error);
+      showToast('Error saving education to database.');
+    }
+  };
+
+  const updateEducation = async (id: string, updates: Partial<Education>) => {
+    try {
+      const res = await apiFetch(`/api/educations/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setEducations(prev => prev.map(e => e.id === id ? json.data : e));
+        showToast('Education record updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update education.');
+      }
+    } catch (error) {
+      console.error('Failed to update education:', error);
+      showToast('Error updating education in database.');
+    }
+  };
+
+  const deleteEducation = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/educations/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setEducations(prev => prev.filter(e => e.id !== id));
+        showToast('Education record deleted from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete education.');
+      }
+    } catch (error) {
+      console.error('Failed to delete education:', error);
+      showToast('Error deleting education from database.');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // SKILL CATEGORIES & SKILLS CRUD
+  // -------------------------------------------------------------
+  const addSkillCategory = async (cat: Omit<SkillCategory, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await apiFetch('/api/skills/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cat),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSkillCategories(prev => [...prev, json.data]);
+        showToast('Skill category created in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to save skill category.');
+      }
+    } catch (error) {
+      console.error('Failed to create skill category:', error);
+      showToast('Error saving skill category to database.');
+    }
+  };
+
+  const updateSkillCategory = async (id: string, updates: Partial<SkillCategory>) => {
+    try {
+      const res = await apiFetch(`/api/skills/categories/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSkillCategories(prev => prev.map(c => c.id === id ? json.data : c));
+        showToast('Skill category updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update skill category.');
+      }
+    } catch (error) {
+      console.error('Failed to update skill category:', error);
+      showToast('Error updating skill category in database.');
+    }
+  };
+
+  const deleteSkillCategory = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/skills/categories/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setSkillCategories(prev => prev.filter(c => c.id !== id));
+        setSkills(prev => prev.filter(s => s.categoryId !== id));
+        showToast('Skill category deleted from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete skill category.');
+      }
+    } catch (error) {
+      console.error('Failed to delete skill category:', error);
+      showToast('Error deleting skill category from database.');
+    }
+  };
+
+  const addSkill = async (skill: Omit<Skill, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await apiFetch('/api/skills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(skill),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSkills(prev => [...prev, json.data]);
+        showToast('Skill saved to PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to save skill.');
+      }
+    } catch (error) {
+      console.error('Failed to create skill:', error);
+      showToast('Error saving skill to database.');
+    }
+  };
+
+  const updateSkill = async (id: string, updates: Partial<Skill>) => {
+    try {
+      const res = await apiFetch(`/api/skills/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSkills(prev => prev.map(s => s.id === id ? json.data : s));
+        showToast('Skill updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update skill.');
+      }
+    } catch (error) {
+      console.error('Failed to update skill:', error);
+      showToast('Error updating skill in database.');
+    }
+  };
+
+  const deleteSkill = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/skills/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setSkills(prev => prev.filter(s => s.id !== id));
+        showToast('Skill deleted from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete skill.');
+      }
+    } catch (error) {
+      console.error('Failed to delete skill:', error);
+      showToast('Error deleting skill from database.');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // SERVICES CRUD
+  // -------------------------------------------------------------
+  const addService = async (srv: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await apiFetch('/api/services', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(srv),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setServices(prev => [...prev, json.data]);
+        showToast('Service created in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to create service.');
+      }
+    } catch (error) {
+      console.error('Failed to create service:', error);
+      showToast('Error creating service in database.');
+    }
+  };
+
+  const updateService = async (id: string, updates: Partial<Service>) => {
+    try {
+      const res = await apiFetch(`/api/services/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setServices(prev => prev.map(s => s.id === id ? json.data : s));
+        showToast('Service updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update service.');
+      }
+    } catch (error) {
+      console.error('Failed to update service:', error);
+      showToast('Error updating service in database.');
+    }
+  };
+
+  const deleteService = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/services/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setServices(prev => prev.filter(s => s.id !== id));
+        showToast('Service removed from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete service.');
+      }
+    } catch (error) {
+      console.error('Failed to delete service:', error);
+      showToast('Error removing service from database.');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // PROJECTS & CASE STUDIES CRUD
+  // -------------------------------------------------------------
+  const addProject = async (proj: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await apiFetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(proj),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setProjects(prev => [json.data, ...prev]);
+        showToast('Project case study saved to PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to save project.');
+      }
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      showToast('Error saving project to database.');
+    }
+  };
+
+  const updateProject = async (id: string, updates: Partial<Project>) => {
+    try {
+      const res = await apiFetch(`/api/projects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setProjects(prev => prev.map(p => p.id === id ? json.data : p));
+        showToast('Case study updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update case study.');
+      }
+    } catch (error) {
+      console.error('Failed to update project:', error);
+      showToast('Error updating project in database.');
+    }
+  };
+
+  const deleteProject = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/projects/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setProjects(prev => prev.filter(p => p.id !== id));
+        showToast('Project removed from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete project.');
+      }
+    } catch (error) {
+      console.error('Failed to delete project:', error);
+      showToast('Error removing project from database.');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // GALLERY CRUD
+  // -------------------------------------------------------------
+  const addGalleryImage = async (img: Omit<GalleryImage, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await apiFetch('/api/gallery', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(img),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setGalleryImages(prev => [json.data, ...prev]);
+        showToast('Gallery image saved to PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to save image.');
+      }
+    } catch (error) {
+      console.error('Failed to create gallery image:', error);
+      showToast('Error saving image to database.');
+    }
+  };
+
+  const updateGalleryImage = async (id: string, updates: Partial<GalleryImage>) => {
+    try {
+      const res = await apiFetch(`/api/gallery/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setGalleryImages(prev => prev.map(g => g.id === id ? json.data : g));
+        showToast('Gallery image updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update image.');
+      }
+    } catch (error) {
+      console.error('Failed to update gallery image:', error);
+      showToast('Error updating image in database.');
+    }
+  };
+
+  const deleteGalleryImage = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/gallery/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setGalleryImages(prev => prev.filter(g => g.id !== id));
+        showToast('Gallery image deleted from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete image.');
+      }
+    } catch (error) {
+      console.error('Failed to delete gallery image:', error);
+      showToast('Error deleting image from database.');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // BLOG POSTS CRUD
+  // -------------------------------------------------------------
+  const addBlogPost = async (post: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await apiFetch('/api/blog-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(post),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setBlogPosts(prev => [json.data, ...prev]);
+        showToast('Journal article published to PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to publish article.');
+      }
+    } catch (error) {
+      console.error('Failed to create blog post:', error);
+      showToast('Error saving article to database.');
+    }
+  };
+
+  const updateBlogPost = async (id: string, updates: Partial<BlogPost>) => {
+    try {
+      const res = await apiFetch(`/api/blog-posts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setBlogPosts(prev => prev.map(b => b.id === id ? json.data : b));
+        showToast('Journal article updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update article.');
+      }
+    } catch (error) {
+      console.error('Failed to update blog post:', error);
+      showToast('Error updating article in database.');
+    }
+  };
+
+  const deleteBlogPost = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/blog-posts/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setBlogPosts(prev => prev.filter(b => b.id !== id));
+        showToast('Journal article removed from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete article.');
+      }
+    } catch (error) {
+      console.error('Failed to delete blog post:', error);
+      showToast('Error removing article from database.');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // CONTENT CATEGORIES CRUD
+  // -------------------------------------------------------------
+  const addContentCategory = async (cat: Omit<ContentCategory, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await apiFetch('/api/content-categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cat),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setContentCategories(prev => [...prev, json.data]);
+        showToast('Category created in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to save category.');
+      }
+    } catch (error) {
+      console.error('Failed to create content category:', error);
+      showToast('Error saving category to database.');
+    }
+  };
+
+  const updateContentCategory = async (id: string, updates: Partial<ContentCategory>) => {
+    try {
+      const res = await apiFetch(`/api/content-categories/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setContentCategories(prev => prev.map(c => c.id === id ? json.data : c));
+        showToast('Category updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update category.');
+      }
+    } catch (error) {
+      console.error('Failed to update content category:', error);
+      showToast('Error updating category in database.');
+    }
+  };
+
+  const deleteContentCategory = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/content-categories/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setContentCategories(prev => prev.filter(c => c.id !== id));
+        showToast('Category deleted from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete category.');
+      }
+    } catch (error) {
+      console.error('Failed to delete content category:', error);
+      showToast('Error deleting category from database.');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // SOCIAL LINKS CRUD
+  // -------------------------------------------------------------
+  const addSocialLink = async (link: Omit<SocialLink, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await apiFetch('/api/social-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(link),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSocialLinks(prev => [...prev, json.data]);
+        showToast('Social link saved to PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to save social link.');
+      }
+    } catch (error) {
+      console.error('Failed to create social link:', error);
+      showToast('Error saving social link to database.');
+    }
+  };
+
+  const updateSocialLink = async (id: string, updates: Partial<SocialLink>) => {
+    try {
+      const res = await apiFetch(`/api/social-links/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSocialLinks(prev => prev.map(s => s.id === id ? json.data : s));
+        showToast('Social link updated in PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update social link.');
+      }
+    } catch (error) {
+      console.error('Failed to update social link:', error);
+      showToast('Error updating social link in database.');
+    }
+  };
+
+  const updateSocialLinks = async (links: SocialLink[]) => {
+    for (const link of links) {
+      await updateSocialLink(link.id, link);
+    }
+  };
+
+  const deleteSocialLink = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/social-links/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setSocialLinks(prev => prev.filter(s => s.id !== id));
+        showToast('Social link removed from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete social link.');
+      }
+    } catch (error) {
+      console.error('Failed to delete social link:', error);
+      showToast('Error removing social link from database.');
+    }
+  };
+
+  // -------------------------------------------------------------
+  // SITE SETTINGS CRUD
+  // -------------------------------------------------------------
+  const updateSiteSetting = async (settings: Partial<SiteSetting>) => {
+    try {
+      const res = await apiFetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setSiteSetting(json.data);
+        showToast('Platform settings synchronized to PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to update settings.');
+      }
+    } catch (error) {
+      console.error('Failed to update site settings:', error);
+      showToast('Error saving settings to database.');
+    }
+  };
+
+  const updateSiteSettings = updateSiteSetting;
+
+  // -------------------------------------------------------------
+  // CONTACT MESSAGES CRUD
+  // -------------------------------------------------------------
+  const submitContactMessage = async (msg: { name: string; email: string; subject: string; message: string; honeypot?: string }) => {
+    try {
+      const res = await apiFetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(msg),
+      });
+      const json = await res.json();
+      if (json.success) {
+        if (json.data) {
+          setContactMessages(prev => [json.data, ...prev]);
+        }
+        showToast('Message submitted and stored securely in PostgreSQL.');
+        return { success: true, message: json.message || 'Message sent successfully.' };
+      }
+      return { success: false, message: json.error || 'Failed to submit message.' };
+    } catch (error: any) {
+      return { success: false, message: error.message || 'Network error submitting message.' };
+    }
+  };
+
+  const updateContactMessageStatus = async (id: string, status: 'NEW' | 'READ' | 'ARCHIVED') => {
+    try {
+      const res = await apiFetch(`/api/messages/${id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setContactMessages(prev => prev.map(m => m.id === id ? json.data : m));
+        showToast(`Message marked as ${status}.`);
+      } else {
+        showToast(json.error || 'Failed to update message.');
+      }
+    } catch (error) {
+      console.error('Failed to update message status:', error);
+      showToast('Error updating message status in database.');
+    }
+  };
+
+  const deleteContactMessage = async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/messages/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setContactMessages(prev => prev.filter(m => m.id !== id));
+        showToast('Message deleted from PostgreSQL database.');
+      } else {
+        showToast(json.error || 'Failed to delete message.');
+      }
+    } catch (error) {
+      console.error('Failed to delete message:', error);
+      showToast('Error deleting message from database.');
+    }
+  };
+
+  const updateMessageStatus = updateContactMessageStatus;
+  const deleteMessage = deleteContactMessage;
+
+  // -------------------------------------------------------------
+  // SESSIONS & ADMIN CREDENTIALS
+  // -------------------------------------------------------------
+  const terminateSession = async (sessionId: string) => {
+    try {
+      await apiFetch(`/api/auth/sessions/${sessionId}`, { method: 'DELETE' });
+      setAdminSessions(prev => prev.filter(s => s.id !== sessionId));
+      showToast('Workstation session terminated.');
+    } catch (error) {
+      console.error('Failed to terminate session:', error);
+    }
+  };
+
+  const terminateAllOtherSessions = async () => {
+    try {
+      await apiFetch('/api/auth/sessions/logout-all', { method: 'POST' });
+      if (currentSessionId) {
+        setAdminSessions(prev => prev.filter(s => s.id === currentSessionId));
+      } else {
+        setAdminSessions([]);
+      }
+      showToast('All other active workstation sessions terminated.');
+    } catch (error) {
+      console.error('Failed to terminate other sessions:', error);
+    }
+  };
+
+  const forceLogoutAllSessions = async () => {
+    await terminateAllOtherSessions();
+    await adminLogout();
+  };
+
+  const addSimulatedSession = (session: Partial<AdminSession>) => {
+    const newSess: AdminSession = {
+      id: `sess_sim_${Date.now()}`,
+      deviceType: session.deviceType || 'Desktop',
+      browser: session.browser || 'Simulated Client',
+      os: session.os || 'Simulated OS',
+      location: session.location || 'Simulated Location',
+      screenResolution: session.screenResolution || '1920 × 1080',
       createdAt: new Date().toISOString(),
       lastActiveAt: new Date().toISOString(),
-      ...sessionData,
-      isCurrent: false,
     };
-    setAdminSessions(prev => [newSession, ...prev]);
-    addAuditLog('ADMIN_SESSION_SIMULATED', 'Session', newId, {
-      browser: newSession.browser,
-      os: newSession.os,
-      location: newSession.location,
-    });
-    showToast(`Registered test session: ${newSession.browser} on ${newSession.os}.`);
+    apiFetch('/api/auth/sessions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newSess),
+    }).catch(err => console.warn(err));
+    setAdminSessions(prev => [newSess, ...prev]);
+    showToast('Simulated security workstation registered.');
   };
 
   const updateAdminCredentials = async (params: {
     newEmail: string;
     newPassword?: string;
-    currentPassword: string;
+    currentPassword?: string;
     syncWithProfileEmail?: boolean;
-  }): Promise<{ success: boolean; message: string }> => {
-    const trimmedEmail = params.newEmail.trim().toLowerCase();
-    if (!trimmedEmail || !trimmedEmail.includes('@')) {
-      return { success: false, message: 'Please provide a valid administrator email address.' };
-    }
-
-    // Verify current password
-    const validCurrent = adminCredentials.customPassword
-      ? params.currentPassword === adminCredentials.customPassword || params.currentPassword === 'gunjan2026' || params.currentPassword === 'admin123'
-      : params.currentPassword === 'gunjan2026' || params.currentPassword === 'admin123';
-
-    if (!validCurrent) {
-      addAuditLog('ADMIN_CREDENTIAL_CHANGE_FAILED', 'Security', 'admin_1', {
-        reason: 'Current password verification failed',
-      });
-      return { success: false, message: 'Current password verification failed. Credential update was rejected.' };
-    }
-
-    const updatedCreds = {
-      email: trimmedEmail,
-      customPassword: params.newPassword && params.newPassword.trim().length >= 6
-        ? params.newPassword.trim()
-        : (adminCredentials.customPassword || 'gunjan2026'),
-      lastChangedAt: new Date().toISOString(),
-    };
-
-    setAdminCredentials(updatedCreds);
-
-    if (params.syncWithProfileEmail) {
-      setProfile(prev => ({ ...prev, email: trimmedEmail, updatedAt: new Date().toISOString() }));
-    }
-
-    addAuditLog('ADMIN_CREDENTIALS_UPDATED', 'Security', 'admin_1', {
-      newEmail: trimmedEmail,
-      passwordChanged: !!(params.newPassword && params.newPassword.trim().length >= 6),
-      syncWithProfileEmail: !!params.syncWithProfileEmail,
-    });
-
-    showToast('Administrator credentials successfully updated and active.');
-    return { 
-      success: true, 
-      message: 'Admin credentials updated. All future CMS logins will now require this email.' 
-    };
-  };
-
-  const forceLogoutAllSessions = () => {
-    addAuditLog('ADMIN_FORCE_TERMINATE_SESSIONS', 'Security', 'sessions', {
-      adminEmail: adminCredentials.email,
-      revokedSessionCount: adminSessions.length,
-      timestamp: new Date().toISOString(),
-    });
-    setAdminSessions([]);
+  }) => {
     try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem(`${STORAGE_PREFIX}auth_session`);
-        localStorage.removeItem(`${STORAGE_PREFIX}current_session_id`);
-      }
-    } catch (err) {}
-    setCurrentSessionId(null);
-    setIsAdminAuthenticated(false);
-    showToast('All administrative sessions force terminated across all devices.');
-    setCurrentRoute('home');
-  };
-
-  const adminLogout = () => {
-    setIsAdminAuthenticated(false);
-    if (currentSessionId) {
-      setAdminSessions(prev => prev.filter(s => s.id !== currentSessionId));
-    }
-    try {
-      if (typeof window !== 'undefined' && window.localStorage) {
-        localStorage.removeItem(`${STORAGE_PREFIX}auth_session`);
-        localStorage.removeItem(`${STORAGE_PREFIX}current_session_id`);
-      }
-    } catch (err) {
-      console.warn('Storage error on logout', err);
-    }
-    setCurrentSessionId(null);
-    addAuditLog('ADMIN_LOGOUT', 'Session', currentSessionId || 'session_active');
-    showToast('Securely logged out of CMS.');
-    setCurrentRoute('home');
-  };
-
-  // Profile
-  const updateProfile = (updated: Partial<Profile>) => {
-    setProfile(prev => ({ ...prev, ...updated, updatedAt: new Date().toISOString() }));
-    addAuditLog('PROFILE_UPDATED', 'Profile', profile.id, updated);
-    showToast('Profile information updated.');
-  };
-
-  // Experience CRUD
-  const addExperience = (exp: Omit<Experience, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newExp: Experience = {
-      ...exp,
-      id: `exp_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setExperiences(prev => [newExp, ...prev]);
-    addAuditLog('EXPERIENCE_CREATED', 'Experience', newExp.id, { title: newExp.title });
-    showToast(`Experience "${newExp.title}" created.`);
-  };
-
-  const updateExperience = (id: string, exp: Partial<Experience>) => {
-    setExperiences(prev => prev.map(e => e.id === id ? { ...e, ...exp, updatedAt: new Date().toISOString() } : e));
-    addAuditLog('EXPERIENCE_UPDATED', 'Experience', id, exp);
-    showToast('Experience updated.');
-  };
-
-  const deleteExperience = (id: string) => {
-    const target = experiences.find(e => e.id === id);
-    setExperiences(prev => prev.filter(e => e.id !== id));
-    addAuditLog('EXPERIENCE_DELETED', 'Experience', id, { title: target?.title });
-    showToast('Experience record removed.');
-  };
-
-  // Education CRUD
-  const addEducation = (edu: Omit<Education, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newEdu: Education = {
-      ...edu,
-      id: `edu_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setEducations(prev => [...prev, newEdu]);
-    addAuditLog('EDUCATION_CREATED', 'Education', newEdu.id, { institution: newEdu.institution });
-    showToast('Education record added.');
-  };
-
-  const updateEducation = (id: string, edu: Partial<Education>) => {
-    setEducations(prev => prev.map(e => e.id === id ? { ...e, ...edu, updatedAt: new Date().toISOString() } : e));
-    addAuditLog('EDUCATION_UPDATED', 'Education', id, edu);
-    showToast('Education record updated.');
-  };
-
-  const deleteEducation = (id: string) => {
-    setEducations(prev => prev.filter(e => e.id !== id));
-    addAuditLog('EDUCATION_DELETED', 'Education', id);
-    showToast('Education record deleted.');
-  };
-
-  // Skills & Categories CRUD
-  const addSkillCategory = (cat: Omit<SkillCategory, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newCat: SkillCategory = {
-      ...cat,
-      id: `cat_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setSkillCategories(prev => [...prev, newCat]);
-    addAuditLog('SKILL_CATEGORY_CREATED', 'SkillCategory', newCat.id, { name: newCat.name });
-    showToast(`Skill category "${newCat.name}" added.`);
-  };
-
-  const updateSkillCategory = (id: string, cat: Partial<SkillCategory>) => {
-    setSkillCategories(prev => prev.map(c => c.id === id ? { ...c, ...cat, updatedAt: new Date().toISOString() } : c));
-    addAuditLog('SKILL_CATEGORY_UPDATED', 'SkillCategory', id, cat);
-    showToast('Skill category updated.');
-  };
-
-  const deleteSkillCategory = (id: string) => {
-    const target = skillCategories.find(c => c.id === id);
-    setSkillCategories(prev => prev.filter(c => c.id !== id));
-    // Soft-decouple: Never delete skills! Preserve them as 'unassigned' and hide from public website until reassigned
-    setSkills(prev => prev.map(s => s.categoryId === id ? { ...s, categoryId: 'unassigned', published: false, updatedAt: new Date().toISOString() } : s));
-    addAuditLog('SKILL_CATEGORY_DELETED', 'SkillCategory', id, { name: target?.name });
-    showToast(`Category "${target?.name || ''}" removed. Linked skills preserved as Unassigned.`);
-  };
-
-  const addSkill = (skill: Omit<Skill, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newSkill: Skill = {
-      ...skill,
-      id: `sk_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setSkills(prev => [...prev, newSkill]);
-    addAuditLog('SKILL_CREATED', 'Skill', newSkill.id, { name: newSkill.name });
-    showToast(`Skill "${newSkill.name}" added.`);
-  };
-
-  const updateSkill = (id: string, skill: Partial<Skill>) => {
-    setSkills(prev => prev.map(s => s.id === id ? { ...s, ...skill, updatedAt: new Date().toISOString() } : s));
-    addAuditLog('SKILL_UPDATED', 'Skill', id, skill);
-    showToast('Skill updated.');
-  };
-
-  const deleteSkill = (id: string) => {
-    setSkills(prev => prev.filter(s => s.id !== id));
-    addAuditLog('SKILL_DELETED', 'Skill', id);
-    showToast('Skill removed.');
-  };
-
-  // Services CRUD
-  const addService = (srv: Omit<Service, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newSrv: Service = {
-      ...srv,
-      id: `srv_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setServices(prev => [...prev, newSrv]);
-    addAuditLog('SERVICE_CREATED', 'Service', newSrv.id, { title: newSrv.title });
-    showToast(`Service "${newSrv.title}" created.`);
-  };
-
-  const updateService = (id: string, srv: Partial<Service>) => {
-    setServices(prev => prev.map(s => s.id === id ? { ...s, ...srv, updatedAt: new Date().toISOString() } : s));
-    addAuditLog('SERVICE_UPDATED', 'Service', id, srv);
-    showToast('Service updated.');
-  };
-
-  const deleteService = (id: string) => {
-    setServices(prev => prev.filter(s => s.id !== id));
-    addAuditLog('SERVICE_DELETED', 'Service', id);
-    showToast('Service deleted.');
-  };
-
-  // Projects CRUD
-  const addProject = (proj: Omit<Project, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newProj: Project = {
-      ...proj,
-      id: `proj_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setProjects(prev => [newProj, ...prev]);
-    addAuditLog('PROJECT_CREATED', 'Project', newProj.id, { title: newProj.title, slug: newProj.slug });
-    showToast(`Project "${newProj.title}" published.`);
-  };
-
-  const updateProject = (id: string, proj: Partial<Project>) => {
-    setProjects(prev => prev.map(p => p.id === id ? { ...p, ...proj, updatedAt: new Date().toISOString() } : p));
-    addAuditLog('PROJECT_UPDATED', 'Project', id, proj);
-    showToast('Project updated.');
-  };
-
-  const deleteProject = (id: string) => {
-    const target = projects.find(p => p.id === id);
-    setProjects(prev => prev.filter(p => p.id !== id));
-    addAuditLog('PROJECT_DELETED', 'Project', id, { title: target?.title });
-    showToast('Project removed.');
-  };
-
-  // Gallery CRUD
-  const addGalleryImage = (img: Omit<GalleryImage, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newImg: GalleryImage = {
-      ...img,
-      id: `gal_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setGalleryImages(prev => [newImg, ...prev]);
-    addAuditLog('GALLERY_IMAGE_UPLOADED', 'GalleryImage', newImg.id, { altText: newImg.altText });
-    showToast('Image added to gallery.');
-  };
-
-  const updateGalleryImage = (id: string, img: Partial<GalleryImage>) => {
-    setGalleryImages(prev => prev.map(g => g.id === id ? { ...g, ...img, updatedAt: new Date().toISOString() } : g));
-    addAuditLog('GALLERY_IMAGE_UPDATED', 'GalleryImage', id, img);
-    showToast('Gallery image updated.');
-  };
-
-  const deleteGalleryImage = (id: string) => {
-    setGalleryImages(prev => prev.filter(g => g.id !== id));
-    addAuditLog('GALLERY_IMAGE_DELETED', 'GalleryImage', id);
-    showToast('Gallery image removed.');
-  };
-
-  // Blog CRUD
-  const addBlogPost = (post: Omit<BlogPost, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newPost: BlogPost = {
-      ...post,
-      id: `post_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setBlogPosts(prev => [newPost, ...prev]);
-    addAuditLog('BLOG_CREATED', 'BlogPost', newPost.id, { title: newPost.title, status: newPost.status });
-    showToast(`Blog post "${newPost.title}" created.`);
-  };
-
-  const updateBlogPost = (id: string, post: Partial<BlogPost>) => {
-    setBlogPosts(prev => prev.map(b => b.id === id ? { ...b, ...post, updatedAt: new Date().toISOString() } : b));
-    addAuditLog('BLOG_UPDATED', 'BlogPost', id, post);
-    showToast('Blog article updated.');
-  };
-
-  const deleteBlogPost = (id: string) => {
-    const target = blogPosts.find(b => b.id === id);
-    setBlogPosts(prev => prev.filter(b => b.id !== id));
-    addAuditLog('BLOG_DELETED', 'BlogPost', id, { title: target?.title });
-    showToast('Blog article deleted.');
-  };
-
-  // Content Categories CRUD
-  const addContentCategory = (cat: Omit<ContentCategory, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newCat: ContentCategory = {
-      ...cat,
-      id: `cat_${Date.now()}`,
-      slug: cat.slug || cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setContentCategories(prev => [...prev, newCat]);
-    addAuditLog('CATEGORY_CREATED', 'ContentCategory', newCat.id, { name: newCat.name });
-    showToast(`Category "${newCat.name}" created.`);
-  };
-
-  const updateContentCategory = (id: string, cat: Partial<ContentCategory>) => {
-    const oldCat = contentCategories.find(c => c.id === id);
-    setContentCategories(prev => prev.map(c => c.id === id ? { ...c, ...cat, updatedAt: new Date().toISOString() } : c));
-    if (cat.name && oldCat && cat.name !== oldCat.name) {
-      setProjects(prev => prev.map(p => p.category === oldCat.name ? { ...p, category: cat.name! } : p));
-      setBlogPosts(prev => prev.map(b => b.category === oldCat.name ? { ...b, category: cat.name! } : b));
-    }
-    addAuditLog('CATEGORY_UPDATED', 'ContentCategory', id, cat);
-    showToast('Category updated.');
-  };
-
-  const deleteContentCategory = (id: string) => {
-    const target = contentCategories.find(c => c.id === id);
-    const catName = target?.name;
-    setContentCategories(prev => prev.filter(c => c.id !== id));
-
-    if (catName) {
-      const lowerCat = catName.toLowerCase().trim();
-      // Soft-decouple: Never delete content! Preserve items as 'Unassigned' and hide from public website until reassigned
-      setProjects(prev => prev.map(p => (p.category || '').toLowerCase().trim() === lowerCat ? { ...p, category: 'Unassigned', published: false, updatedAt: new Date().toISOString() } : p));
-      setBlogPosts(prev => prev.map(b => (b.category || '').toLowerCase().trim() === lowerCat ? { ...b, category: 'Unassigned', status: 'DRAFT', updatedAt: new Date().toISOString() } : b));
-      setGalleryImages(prev => prev.map(g => (g.category || '').toLowerCase().trim() === lowerCat ? { ...g, category: 'Unassigned', published: false, updatedAt: new Date().toISOString() } : g));
-    }
-
-    addAuditLog('CATEGORY_DELETED', 'ContentCategory', id, { name: target?.name });
-    showToast(`Category "${target?.name || ''}" removed. Associated items preserved as Unassigned.`);
-  };
-
-  // Contact Submissions (with spam honeypot check & rate limit check)
-  const submitContactMessage = async (msg: { name: string; email: string; subject: string; message: string; honeypot?: string }): Promise<{ success: boolean; message: string }> => {
-    // Check honeypot
-    if (msg.honeypot && msg.honeypot.trim().length > 0) {
-      // Silently discard bot submission
-      return { success: true, message: 'Message sent successfully.' };
-    }
-
-    if (!msg.name.trim() || !msg.email.trim() || !msg.message.trim()) {
-      return { success: false, message: 'Please complete all required fields.' };
-    }
-
-    try {
-      // Post to PostgreSQL backend API
-      fetch('/api/contact', {
-        method: 'POST',
+      const res = await apiFetch('/api/auth/credentials', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(msg),
-      }).catch(err => console.warn('Background sync to PostgreSQL contact table:', err));
-    } catch (e) {
-      // Non-blocking catch
+        body: JSON.stringify({
+          email: params.newEmail,
+          newPassword: params.newPassword,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setCurrentAdminUser(prev => ({ ...prev, email: params.newEmail }));
+        if (params.syncWithProfileEmail) {
+          await updateProfile({ email: params.newEmail });
+        }
+        showToast('Administrator credentials updated in PostgreSQL database.');
+        return { success: true, message: 'Administrator credentials updated successfully.' };
+      }
+      return { success: false, message: json.error || 'Failed to update credentials.' };
+    } catch (error: any) {
+      return { success: false, message: error.message || 'Error updating credentials.' };
     }
-
-    const newMsg: ContactMessage = {
-      id: `msg_${Date.now()}`,
-      name: msg.name.trim(),
-      email: msg.email.trim(),
-      subject: msg.subject.trim() || 'General Inquiry',
-      message: msg.message.trim(),
-      status: 'NEW',
-      ipHash: `client_${Math.random().toString(36).substr(2, 6)}`,
-      userAgent: navigator.userAgent,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    setContactMessages(prev => [newMsg, ...prev]);
-    addAuditLog('CONTACT_MESSAGE_RECEIVED', 'ContactMessage', newMsg.id, { senderName: newMsg.name, email: newMsg.email });
-    showToast('Your message has been sent successfully. Thank you for connecting.');
-    return { success: true, message: 'Message sent successfully.' };
   };
 
-  const updateContactMessageStatus = (id: string, status: 'NEW' | 'READ' | 'ARCHIVED') => {
-    setContactMessages(prev => prev.map(m => m.id === id ? { ...m, status, updatedAt: new Date().toISOString() } : m));
-    addAuditLog('CONTACT_MESSAGE_STATUS_CHANGED', 'ContactMessage', id, { status });
+  // -------------------------------------------------------------
+  // DATABASE RESET & BACKUP
+  // -------------------------------------------------------------
+  const resetToDefaults = async () => {
+    try {
+      const res = await apiFetch('/api/portfolio/admin/reset-database', { method: 'POST' });
+      const json = await res.json();
+      if (json.success) {
+        await loadAdminData();
+        showToast('PostgreSQL database reset and reseeded to official verified data.');
+      } else {
+        showToast(json.error || 'Failed to reset database.');
+      }
+    } catch (error) {
+      console.error('Failed to reset database:', error);
+      showToast('Error resetting PostgreSQL database.');
+    }
   };
 
-  const deleteContactMessage = (id: string) => {
-    setContactMessages(prev => prev.filter(m => m.id !== id));
-    addAuditLog('CONTACT_MESSAGE_DELETED', 'ContactMessage', id);
-    showToast('Message removed.');
-  };
+  const resetToInitialState = resetToDefaults;
 
-  // Social Links
-  const updateSocialLinks = (links: SocialLink[]) => {
-    setSocialLinks(links);
-    addAuditLog('SOCIAL_LINKS_UPDATED', 'SocialLink', 'social_set');
-    showToast('Social links updated.');
-  };
-
-  const addSocialLink = (link: Omit<SocialLink, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newLink: SocialLink = {
-      ...link,
-      id: `soc_${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setSocialLinks(prev => [...prev, newLink]);
-    addAuditLog('SOCIAL_LINK_CREATED', 'SocialLink', newLink.id, { label: newLink.label });
-    showToast(`Added social link "${newLink.label}".`);
-  };
-
-  const updateSocialLink = (id: string, updates: Partial<SocialLink>) => {
-    setSocialLinks(prev => prev.map(s => s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s));
-    addAuditLog('SOCIAL_LINK_UPDATED', 'SocialLink', id, updates);
-    showToast('Social link saved.');
-  };
-
-  const deleteSocialLink = (id: string) => {
-    const toDelete = socialLinks.find(s => s.id === id);
-    setSocialLinks(prev => prev.filter(s => s.id !== id));
-    addAuditLog('SOCIAL_LINK_DELETED', 'SocialLink', id, { label: toDelete?.label });
-    showToast(`Removed social link "${toDelete?.label || 'item'}".`);
-  };
-
-  // Settings
-  const updateSiteSetting = (settings: Partial<SiteSetting>) => {
-    setSiteSetting(prev => ({ ...prev, ...settings, updatedAt: new Date().toISOString() }));
-    addAuditLog('SETTINGS_UPDATED', 'SiteSetting', siteSetting.id, settings);
-    showToast('Platform settings saved.');
-  };
-
-  // Backup & Reset
-  const resetToDefaults = () => {
-    setProfile(initialProfile);
-    setExperiences(initialExperiences);
-    setEducations(initialEducations);
-    setSkillCategories(initialSkillCategories);
-    setSkills(initialSkills);
-    setServices(initialServices);
-    setProjects(initialProjects);
-    setGalleryImages(initialGalleryImages);
-    setBlogPosts(initialBlogPosts);
-    setContentCategories(initialContentCategories);
-    setContactMessages(initialContactMessages);
-    setSocialLinks(initialSocialLinks);
-    setSiteSetting(initialSiteSetting);
-    setAuditLogs(initialAuditLogs);
-    setAdminSessions(defaultSeedSessions);
-    addAuditLog('DATABASE_RESET_TO_DEFAULTS', 'System', 'system_root');
-    showToast('Database reset to original baseline.');
-  };
-
-  const exportDatabaseBackup = (): string => {
+  const exportDatabaseBackup = () => {
     const backup = {
-      version: '1.0.0',
-      exportedAt: new Date().toISOString(),
+      version: '2.0-postgresql',
+      timestamp: new Date().toISOString(),
       data: {
         profile,
         experiences,
@@ -1103,48 +1247,37 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         galleryImages,
         blogPosts,
         contentCategories,
-        contactMessages,
         socialLinks,
         siteSetting,
-        auditLogs,
-      }
+        contactMessages,
+      },
     };
-    addAuditLog('DATABASE_BACKUP_EXPORTED', 'System', 'backup');
     return JSON.stringify(backup, null, 2);
   };
 
   const importDatabaseBackup = (jsonString: string): { success: boolean; message: string } => {
     try {
       const parsed = JSON.parse(jsonString);
-      if (parsed.data) {
-        if (parsed.data.profile) setProfile(parsed.data.profile);
-        if (parsed.data.experiences) setExperiences(parsed.data.experiences);
-        if (parsed.data.educations) setEducations(parsed.data.educations);
-        if (parsed.data.skillCategories) setSkillCategories(parsed.data.skillCategories);
-        if (parsed.data.skills) setSkills(parsed.data.skills);
-        if (parsed.data.services) setServices(parsed.data.services);
-        if (parsed.data.projects) setProjects(parsed.data.projects);
-        if (parsed.data.galleryImages) setGalleryImages(parsed.data.galleryImages);
-        if (parsed.data.blogPosts) setBlogPosts(parsed.data.blogPosts);
-        if (parsed.data.contentCategories) setContentCategories(parsed.data.contentCategories);
-        if (parsed.data.contactMessages) setContactMessages(parsed.data.contactMessages);
-        if (parsed.data.socialLinks) setSocialLinks(parsed.data.socialLinks);
-        if (parsed.data.siteSetting) setSiteSetting(parsed.data.siteSetting);
-        addAuditLog('DATABASE_RESTORED_FROM_BACKUP', 'System', 'restore');
-        showToast('Database backup restored successfully.');
-        return { success: true, message: 'Database backup restored successfully.' };
+      const data = parsed.data || parsed;
+      if (!data.profile && !data.experiences) {
+        return { success: false, message: 'Invalid backup format.' };
       }
-      return { success: false, message: 'Invalid backup structure. Missing data payload.' };
-    } catch (e: any) {
-      console.error('Failed to import database backup', e);
-      return { success: false, message: e.message || 'JSON parsing error.' };
-    }
-  };
 
-  const currentAdminUser = {
-    email: adminCredentials.email || profile.email || 'gunjanstha01@gmail.com',
-    role: 'Super Administrator - Primary Owner',
-    lastChangedAt: adminCredentials.lastChangedAt,
+      // Restore profile & siteSetting to state and persist to database
+      if (data.profile) {
+        setProfile(data.profile);
+        updateProfile(data.profile).catch(console.error);
+      }
+      if (data.siteSetting) {
+        setSiteSetting(data.siteSetting);
+        updateSiteSetting(data.siteSetting).catch(console.error);
+      }
+
+      showToast('Backup data imported into PostgreSQL database.');
+      return { success: true, message: 'Backup successfully restored to PostgreSQL database.' };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Failed to parse JSON backup.' };
+    }
   };
 
   return (
@@ -1158,34 +1291,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSelectedBlogSlug,
         adminActiveTab,
         setAdminActiveTab,
-        
         isAdminAuthenticated,
         adminLogin,
         adminLogout,
-        adminSessions: adminSessions.map(s => ({
-          ...s,
-          isCurrent: s.id === currentSessionId,
-        })),
-        currentSessionId,
-        terminateSession,
-        terminateAllOtherSessions,
-        addSimulatedSession,
-        updateAdminCredentials,
-        forceLogoutAllSessions,
-        
         profile,
         updateProfile,
-        
         experiences,
         addExperience,
         updateExperience,
         deleteExperience,
-        
         educations,
         addEducation,
         updateEducation,
         deleteEducation,
-        
         skillCategories,
         skills,
         addSkillCategory,
@@ -1194,57 +1312,54 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addSkill,
         updateSkill,
         deleteSkill,
-        
         services,
         addService,
         updateService,
         deleteService,
-        
         projects,
         addProject,
         updateProject,
         deleteProject,
-        
         galleryImages,
         addGalleryImage,
         updateGalleryImage,
         deleteGalleryImage,
-        
         blogPosts,
         addBlogPost,
         updateBlogPost,
         deleteBlogPost,
-        
         contentCategories,
         addContentCategory,
         updateContentCategory,
         deleteContentCategory,
-        
         contactMessages,
         submitContactMessage,
         updateContactMessageStatus,
         deleteContactMessage,
-        updateMessageStatus: updateContactMessageStatus,
-        deleteMessage: deleteContactMessage,
-        
         socialLinks,
         updateSocialLinks,
         addSocialLink,
         updateSocialLink,
         deleteSocialLink,
-        
         siteSetting,
         siteSettings: siteSetting,
         updateSiteSetting,
-        updateSiteSettings: updateSiteSetting,
-        
+        updateSiteSettings,
         auditLogs,
         currentAdminUser,
+        adminSessions,
+        currentSessionId,
+        terminateSession,
+        terminateAllOtherSessions,
+        addSimulatedSession,
+        updateAdminCredentials,
+        forceLogoutAllSessions,
         resetToDefaults,
-        resetToInitialState: resetToDefaults,
+        resetToInitialState,
         exportDatabaseBackup,
         importDatabaseBackup,
-        
+        updateMessageStatus,
+        deleteMessage,
         toastMessage,
         showToast,
         confirmModal,

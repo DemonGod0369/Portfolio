@@ -84,7 +84,7 @@ export const Lightbox: React.FC<LightboxProps> = ({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
             transition={{ duration: 0.25 }}
-            src={currentImage.url}
+            src={currentImage.url || undefined}
             alt={currentImage.altText}
             className="max-h-[75vh] w-auto max-w-full object-contain rounded-md shadow-2xl border border-[#262626]"
           />

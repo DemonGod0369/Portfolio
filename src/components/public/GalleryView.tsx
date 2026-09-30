@@ -71,13 +71,19 @@ export const GalleryView: React.FC = () => {
               className="break-inside-avoid group cursor-pointer bg-[#0B132B] border border-[#1E293B] hover:border-[#00E5FF]/50 rounded-xl overflow-hidden transition-all duration-300 space-y-2 pb-3 shadow-sm hover:shadow-[0_0_25px_rgba(0,229,255,0.12)]"
             >
               <div className="relative overflow-hidden bg-[#050814]">
-                <img
-                  src={img.url}
-                  alt={img.altText}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-auto object-cover transition-all duration-500 transform group-hover:scale-105"
-                  loading="lazy"
-                />
+                {img.url ? (
+                  <img
+                    src={img.url}
+                    alt={img.altText}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-auto object-cover transition-all duration-500 transform group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-40 bg-[#050814] flex items-center justify-center text-slate-500 font-mono text-xs">
+                    No Image
+                  </div>
+                )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
                   <div className="flex items-center gap-1.5 text-xs font-mono text-[#F8FAFC]">
                     <Eye className="w-3.5 h-3.5 text-[#00E5FF]" />

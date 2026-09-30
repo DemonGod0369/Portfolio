@@ -67,13 +67,19 @@ export const WorkView: React.FC = () => {
             >
               {/* Project Image */}
               <div className="relative aspect-[16/10] overflow-hidden bg-[#050814]">
-                <img
-                  src={proj.heroImage}
-                  alt={proj.title}
-                  referrerPolicy="no-referrer"
-                  className="w-full h-full object-cover transition-all duration-500 transform group-hover:scale-105"
-                  loading="lazy"
-                />
+                {proj.heroImage ? (
+                  <img
+                    src={proj.heroImage}
+                    alt={proj.title}
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover transition-all duration-500 transform group-hover:scale-105"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-[#050814] flex items-center justify-center text-slate-500 font-mono text-xs">
+                    Case Study
+                  </div>
+                )}
                 <div className="absolute top-4 right-4 p-2 bg-[#050814]/80 backdrop-blur-sm rounded-full text-[#00E5FF] opacity-0 group-hover:opacity-100 transition-opacity border border-cyan-500/30">
                   <ArrowUpRight className="w-4 h-4" />
                 </div>
@@ -176,21 +182,23 @@ export const ProjectDetailView: React.FC = () => {
         </div>
 
         {/* Main Hero Image */}
-        <div
-          onClick={() => handleOpenLightbox(0)}
-          className="relative aspect-[16/9] rounded-xl overflow-hidden bg-[#050814] border border-[#1E293B] cursor-pointer group shadow-xl"
-        >
-          <img
-            src={project.heroImage}
-            alt={project.title}
-            referrerPolicy="no-referrer"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-          <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-[#050814]/80 backdrop-blur-md rounded-md text-xs font-mono text-[#F8FAFC] flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity border border-cyan-500/30">
-            <Eye className="w-3.5 h-3.5 text-[#00E5FF]" />
-            <span>Click to expand</span>
+        {project.heroImage && (
+          <div
+            onClick={() => handleOpenLightbox(0)}
+            className="relative aspect-[16/9] rounded-xl overflow-hidden bg-[#050814] border border-[#1E293B] cursor-pointer group shadow-xl"
+          >
+            <img
+              src={project.heroImage}
+              alt={project.title}
+              referrerPolicy="no-referrer"
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute bottom-4 right-4 px-3 py-1.5 bg-[#050814]/80 backdrop-blur-md rounded-md text-xs font-mono text-[#F8FAFC] flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity border border-cyan-500/30">
+              <Eye className="w-3.5 h-3.5 text-[#00E5FF]" />
+              <span>Click to expand</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Case Study Grid Sections */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-12 pt-6">
@@ -276,12 +284,14 @@ export const ProjectDetailView: React.FC = () => {
                       className="group cursor-pointer space-y-1.5"
                     >
                       <div className="aspect-[4/3] rounded-lg overflow-hidden bg-[#050814] border border-[#1E293B]">
-                        <img
-                          src={img.url}
-                          alt={img.altText}
-                          referrerPolicy="no-referrer"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
+                        {img.url ? (
+                          <img
+                            src={img.url}
+                            alt={img.altText}
+                            referrerPolicy="no-referrer"
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : null}
                       </div>
                       {img.caption && (
                         <p className="text-[11px] font-mono text-[#94A3B8]">

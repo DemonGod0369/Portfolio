@@ -11,32 +11,41 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-const THEME_STORAGE_KEY = 'gunjan_portfolio_theme';
+function getThemeFromCookie(): Theme | null {
+  try {
+    if (typeof document === 'undefined') return null;
+    const match = document.cookie.match(/(?:^|; )gunjan_theme=([^;]*)/);
+    if (match && (match[1] === 'dark' || match[1] === 'light')) {
+      return match[1] as Theme;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function setThemeCookie(theme: Theme) {
+  try {
+    if (typeof document !== 'undefined') {
+      document.cookie = `gunjan_theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
+    }
+  } catch {
+    // ignore
+  }
+}
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<Theme>(() => {
-    try {
-      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      if (savedTheme === 'light' || savedTheme === 'dark') {
-        return savedTheme;
-      }
-      // Check system preference
-      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-        return 'light';
-      }
-    } catch {
-      // ignore
+    const cookieTheme = getThemeFromCookie();
+    if (cookieTheme) return cookieTheme;
+    if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return 'light';
     }
     return 'dark';
   });
 
   useEffect(() => {
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, theme);
-    } catch {
-      // ignore
-    }
-
+    setThemeCookie(theme);
     const root = document.documentElement;
     if (theme === 'light') {
       root.classList.add('light-theme');

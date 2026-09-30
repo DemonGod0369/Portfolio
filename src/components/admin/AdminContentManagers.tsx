@@ -1205,7 +1205,11 @@ export const AdminGalleryManager: React.FC = () => {
           <div key={img.id} className="p-4 bg-[#111111] border border-[#262626] rounded-sm space-y-3 flex flex-col justify-between group hover:border-[#c6a87d]/50 transition-colors">
             <div className="space-y-3">
               <div className="aspect-[4/3] rounded-sm overflow-hidden bg-[#0c0c0c] relative border border-[#1f1f1f]">
-                <img src={img.url} alt={img.altText} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                {img.url ? (
+                  <img src={img.url} alt={img.altText || 'Gallery item'} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs font-mono text-zinc-600">No Image</div>
+                )}
                 <div className="absolute top-2 right-2 flex items-center gap-1.5">
                   <button
                     onClick={() => updateGalleryImage(img.id, { published: !img.published })}

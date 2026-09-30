@@ -9,7 +9,7 @@ import {
   initialServices, 
   initialGalleryImages, 
   initialContactMessages 
-} from '../src/data/initialData';
+} from '../src/db/seedData.ts';
 import { Experience, Project, BlogPost, Education, Skill, Service, GalleryImage, SkillCategory, ContactMessage } from '../src/types';
 
 describe('CMS Data Integrity & Comprehensive CRUD Operations', () => {

@@ -257,11 +257,17 @@ export const AdminGalleryManager: React.FC = () => {
           >
             <div className="space-y-3">
               <div className="aspect-[4/3] rounded-sm overflow-hidden bg-[#0c0c0c] relative border border-[#1f1f1f]">
-                <img 
-                  src={img.url} 
-                  alt={img.caption || img.altText || 'Portfolio gallery image'} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
-                />
+                {img.url ? (
+                  <img 
+                    src={img.url} 
+                    alt={img.caption || img.altText || 'Portfolio gallery image'} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-xs font-mono text-zinc-600 bg-zinc-900">
+                    No Image
+                  </div>
+                )}
                 <div className="absolute top-2 right-2 flex items-center gap-1.5">
                   <button
                     onClick={() => {

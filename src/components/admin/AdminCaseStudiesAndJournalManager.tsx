@@ -537,11 +537,17 @@ export const AdminCaseStudiesAndJournalManager: React.FC<{ initialSubTab?: SubTa
               >
                 <div>
                   <div className="aspect-[16/9] w-full bg-[#0a0a0a] relative overflow-hidden">
-                    <img 
-                      src={item.heroImage} 
-                      alt={item.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
+                    {item.heroImage ? (
+                      <img 
+                        src={item.heroImage} 
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs font-mono text-zinc-600 bg-zinc-900">
+                        No Cover Image
+                      </div>
+                    )}
                     <div className="absolute top-3 left-3 flex items-center gap-1.5">
                       <span className={`px-2 py-0.5 rounded text-[9px] font-mono uppercase tracking-wider font-bold shadow-md ${
                         item.type === 'CASE_STUDY'

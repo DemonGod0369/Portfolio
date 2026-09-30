@@ -166,13 +166,6 @@ class AppErrorBoundary extends React.Component<{ children: React.ReactNode }, Er
               </button>
               <button
                 onClick={() => {
-                  try {
-                    Object.keys(localStorage).forEach(k => {
-                      if (k.startsWith('gunjan_platform_')) localStorage.removeItem(k);
-                    });
-                  } catch (e) {
-                    console.error(e);
-                  }
                   window.location.reload();
                 }}
                 className="px-4 py-2 bg-[#171717] border border-[#262626] text-xs text-[#969696] hover:text-[#F5F5F5] rounded-sm"

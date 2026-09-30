@@ -80,7 +80,7 @@ export const Footer: React.FC = () => {
           {/* Column 1: Identity & Proposition */}
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center gap-4">
-              {siteSettings.logoUrl ? (
+              {siteSettings.logoUrl && siteSettings.logoUrl.trim() !== '' ? (
                 <img
                   src={siteSettings.logoUrl}
                   alt={siteSettings.siteName || "Gunjan Shrestha"}

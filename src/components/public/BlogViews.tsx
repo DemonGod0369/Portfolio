@@ -262,13 +262,17 @@ export const BlogPostDetailView: React.FC = () => {
 
         {/* Author Bio Footer in Article */}
         <div className="p-8 bg-[#0B132B] border border-[#1E293B] rounded-xl flex flex-col sm:flex-row items-center gap-6 mt-12 shadow-lg">
-          <div className="w-16 h-16 rounded-full overflow-hidden bg-[#050814] shrink-0 border border-[#00E5FF]">
-            <img
-              src={profile.profileImageUrl}
-              alt="Gunjan Shrestha"
-              referrerPolicy="no-referrer"
-              className="w-full h-full object-cover"
-            />
+          <div className="w-16 h-16 rounded-full overflow-hidden bg-[#050814] shrink-0 border border-[#00E5FF] flex items-center justify-center">
+            {profile.profileImageUrl ? (
+              <img
+                src={profile.profileImageUrl}
+                alt="Gunjan Shrestha"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-xs font-mono font-bold text-[#00E5FF]">GS</span>
+            )}
           </div>
           <div className="space-y-1 text-center sm:text-left">
             <h4 className="text-sm font-bold text-[#F8FAFC] uppercase tracking-tight">

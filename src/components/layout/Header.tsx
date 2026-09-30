@@ -81,7 +81,7 @@ export const Header: React.FC = () => {
             className="group flex items-center gap-3.5 text-left focus:outline-none"
             aria-label="Gunjan Shrestha Home"
           >
-            {siteSettings.logoUrl ? (
+            {siteSettings.logoUrl && siteSettings.logoUrl.trim() !== '' ? (
               <img
                 src={siteSettings.logoUrl}
                 alt={siteSettings.siteName || "Gunjan Shrestha"}
@@ -220,7 +220,7 @@ export const Header: React.FC = () => {
             {/* Top Bar inside Overlay */}
             <div className="flex items-center justify-between border-b border-[#1E293B] pb-6">
               <div className="flex items-center gap-3.5">
-                {siteSettings.logoUrl ? (
+                {siteSettings.logoUrl && siteSettings.logoUrl.trim() !== '' ? (
                   <img
                     src={siteSettings.logoUrl}
                     alt={siteSettings.siteName || "Gunjan Shrestha"}

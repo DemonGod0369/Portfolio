@@ -1,11 +1,12 @@
 import { pgTable, text, timestamp, boolean, integer, jsonb, serial } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
-// 1. Users (Admin User with Firebase Auth UID)
+// 1. Users (Admin User with Firebase Auth UID or local credentials)
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   uid: text('uid').notNull().unique(), // Firebase Auth UID
   email: text('email').notNull().unique(),
+  passwordHash: text('password_hash'),
   isActive: boolean('is_active').default(true).notNull(),
   lastLoginAt: timestamp('last_login_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -20,10 +21,24 @@ export const profiles = pgTable('profiles', {
   shortBio: text('short_bio'),
   longBio: text('long_bio'),
   profileImageUrl: text('profile_image_url'),
+  visitingCardImageUrl: text('visiting_card_image_url'),
+  dateOfBirth: text('date_of_birth'),
+  address: text('address'),
   email: text('email'),
+  alternateEmail: text('alternate_email'),
+  primaryEmailLabel: text('primary_email_label'),
+  alternateEmailLabel: text('alternate_email_label'),
   phone: text('phone'),
+  secondaryPhone: text('secondary_phone'),
+  phoneDisplayOption: text('phone_display_option'),
+  whatsappNumber: text('whatsapp_number'),
   location: text('location'),
   website: text('website'),
+  availabilityStatus: text('availability_status'),
+  availabilityCustomNote: text('availability_custom_note'),
+  timezone: text('timezone'),
+  responseTime: text('response_time'),
+  languagesSpoken: text('languages_spoken').array(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -49,6 +64,7 @@ export const experiences = pgTable('experiences', {
   id: serial('id').primaryKey(),
   category: text('category').notNull(),
   title: text('title').notNull(),
+  roleTitle: text('role_title'),
   organization: text('organization'),
   location: text('location'),
   startDate: text('start_date'),
@@ -119,6 +135,12 @@ export const projects = pgTable('projects', {
   design: text('design'),
   technology: text('technology'),
   result: text('result'),
+  heroImage: text('hero_image'),
+  liveUrl: text('live_url'),
+  githubUrl: text('github_url'),
+  seoTitle: text('seo_title'),
+  seoDescription: text('seo_description'),
+  canonicalUrl: text('canonical_url'),
   featured: boolean('featured').default(false).notNull(),
   published: boolean('published').default(true).notNull(),
   displayOrder: integer('display_order').default(0).notNull(),
@@ -174,6 +196,7 @@ export const blogPosts = pgTable('blog_posts', {
   excerpt: text('excerpt'),
   coverImageUrl: text('cover_image_url'),
   content: text('content').notNull(),
+  category: text('category'),
   categoryId: integer('category_id').references(() => blogCategories.id, { onDelete: 'set null' }),
   readingTime: integer('reading_time'),
   publishedAt: timestamp('published_at'),
@@ -219,6 +242,7 @@ export const siteSettings = pgTable('site_settings', {
   id: serial('id').primaryKey(),
   siteName: text('site_name').notNull(),
   siteDescription: text('site_description'),
+  canonicalUrl: text('canonical_url'),
   logoUrl: text('logo_url'),
   faviconUrl: text('favicon_url'),
   profileImageUrl: text('profile_image_url'),
@@ -232,11 +256,41 @@ export const siteSettings = pgTable('site_settings', {
   defaultSeoTitle: text('default_seo_title'),
   defaultSeoDescription: text('default_seo_description'),
   defaultOgImageUrl: text('default_og_image_url'),
+  seoKeywords: text('seo_keywords'),
+  allowIndexing: boolean('allow_indexing').default(true).notNull(),
+  googleSiteVerification: text('google_site_verification'),
+  googleAnalyticsId: text('google_analytics_id'),
+  customHeadSnippet: text('custom_head_snippet'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-// 16. AuditLog
+// 16. ContentCategory (Universal Category for Case Studies, Journal, Gallery, etc.)
+export const contentCategories = pgTable('content_categories', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull().unique(),
+  type: text('type').default('GENERAL').notNull(),
+  description: text('description'),
+  displayOrder: integer('display_order').default(0).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// 17. AdminSession
+export const adminSessions = pgTable('admin_sessions', {
+  id: text('id').primaryKey(),
+  deviceType: text('device_type').notNull(),
+  browser: text('browser').notNull(),
+  os: text('os').notNull(),
+  ipAddress: text('ip_address'),
+  location: text('location'),
+  screenResolution: text('screen_resolution'),
+  lastActiveAt: timestamp('last_active_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// 18. AuditLog
 export const auditLogs = pgTable('audit_logs', {
   id: serial('id').primaryKey(),
   userId: text('user_id'),

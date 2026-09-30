@@ -29,7 +29,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
   const [imgLoaded, setImgLoaded] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Resize / compress helper for smooth localStorage and instantaneous rendering
+  // Resize / compress helper for smooth database storage and instantaneous rendering
   const processImageFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
       alert('Please select a valid image file (PNG, JPG, WEBP, SVG).');
