@@ -4,11 +4,6 @@ import { db } from '../src/db/index.ts';
 import * as schema from '../src/db/schema.ts';
 
 describe('PostgreSQL Dynamic Database Integration & Full CRUD Suite', () => {
-  beforeAll(async () => {
-    // Ensure seeding is ready
-    await queries.seedDatabaseIfEmpty();
-  });
-
   it('READ: retrieves dynamic portfolio data on initial load from PostgreSQL', async () => {
     const data = await queries.getPublicPortfolioData();
     expect(data).toBeDefined();
@@ -27,7 +22,8 @@ describe('PostgreSQL Dynamic Database Integration & Full CRUD Suite', () => {
   // 1. Profile CRUD
   it('PROFILE: reads and updates profile in PostgreSQL', async () => {
     const profile = await queries.getProfile();
-    expect(profile.name).toBe('Gunjan Shrestha');
+    expect(profile).toBeDefined();
+    expect(profile?.name).toBe('Gunjan Shrestha');
 
     const updated = await queries.updateProfile({
       headline: 'Multidisciplinary Founder & Operator — Operations, Finance, Tech & Design (Updated)',

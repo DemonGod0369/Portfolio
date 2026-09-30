@@ -1,21 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { 
-  initialExperiences, 
-  initialProjects, 
-  initialBlogPosts, 
-  initialEducations, 
-  initialSkillCategories, 
-  initialSkills, 
-  initialServices, 
-  initialGalleryImages, 
-  initialContactMessages 
-} from '../src/db/seedData.ts';
 import { Experience, Project, BlogPost, Education, Skill, Service, GalleryImage, SkillCategory, ContactMessage } from '../src/types';
 
 describe('CMS Data Integrity & Comprehensive CRUD Operations', () => {
   // 1. Experiences (Career Milestones) CRUD
   describe('Experience CRUD Operations', () => {
-    let experiences: Experience[] = [...initialExperiences];
+    let experiences: Experience[] = [];
 
     it('CREATE: successfully creates and prepends a new career milestone', () => {
       const initialCount = experiences.length;
@@ -68,7 +57,7 @@ describe('CMS Data Integrity & Comprehensive CRUD Operations', () => {
 
   // 2. Projects (Case Studies) CRUD
   describe('Project / Case Study CRUD Operations', () => {
-    let projects: Project[] = [...initialProjects];
+    let projects: Project[] = [];
 
     it('CREATE: creates a new case study with tags and metrics', () => {
       const count = projects.length;
@@ -112,7 +101,7 @@ describe('CMS Data Integrity & Comprehensive CRUD Operations', () => {
 
   // 3. Blog Posts (Journal) CRUD
   describe('Blog / Journal CRUD Operations', () => {
-    let posts: BlogPost[] = [...initialBlogPosts];
+    let posts: BlogPost[] = [];
 
     it('CREATE: drafts a new technical journal article', () => {
       const count = posts.length;
@@ -155,7 +144,7 @@ describe('CMS Data Integrity & Comprehensive CRUD Operations', () => {
 
   // 4. Academic Qualifications (Education) CRUD
   describe('Education CRUD Operations', () => {
-    let educations: Education[] = [...initialEducations];
+    let educations: Education[] = [];
 
     it('CREATE: creates education entry', () => {
       const count = educations.length;
@@ -194,8 +183,8 @@ describe('CMS Data Integrity & Comprehensive CRUD Operations', () => {
 
   // 5. Skills & Skill Categories CRUD
   describe('Skills & Skill Categories CRUD Operations', () => {
-    let categories: SkillCategory[] = [...initialSkillCategories];
-    let skills: Skill[] = [...initialSkills];
+    let categories: SkillCategory[] = [];
+    let skills: Skill[] = [];
 
     it('CREATE: creates a new skill category and associated skill', () => {
       const newCategory: SkillCategory = {
@@ -243,7 +232,7 @@ describe('CMS Data Integrity & Comprehensive CRUD Operations', () => {
 
   // 6. Services CRUD
   describe('Service Offerings CRUD Operations', () => {
-    let services: Service[] = [...initialServices];
+    let services: Service[] = [];
 
     it('CREATE: registers a new technical consultation service', () => {
       const count = services.length;
@@ -282,7 +271,7 @@ describe('CMS Data Integrity & Comprehensive CRUD Operations', () => {
 
   // 7. Gallery Images CRUD
   describe('Gallery & Media CRUD Operations', () => {
-    let gallery: GalleryImage[] = [...initialGalleryImages];
+    let gallery: GalleryImage[] = [];
 
     it('CREATE: uploads/records a new gallery media item', () => {
       const count = gallery.length;
@@ -321,7 +310,7 @@ describe('CMS Data Integrity & Comprehensive CRUD Operations', () => {
 
   // 8. Contact Messages CRUD
   describe('Contact Messages Inbox CRUD Operations', () => {
-    let messages: ContactMessage[] = [...initialContactMessages];
+    let messages: ContactMessage[] = [];
 
     it('CREATE: receives and logs incoming inquiry message', () => {
       const count = messages.length;

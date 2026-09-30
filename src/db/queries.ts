@@ -1,20 +1,6 @@
 import { db } from './index.ts';
 import * as schema from './schema.ts';
 import { eq, desc, asc } from 'drizzle-orm';
-import {
-  initialProfile,
-  initialExperiences,
-  initialEducations,
-  initialSkillCategories,
-  initialSkills,
-  initialServices,
-  initialContentCategories,
-  initialProjects,
-  initialGalleryImages,
-  initialBlogPosts,
-  initialSocialLinks,
-  initialSiteSetting
-} from './seedData.ts';
 
 // Helper to normalize integer IDs to string for React frontend types
 function formatRow<T extends { id: number | string }>(row: T): T & { id: string } {
@@ -27,292 +13,6 @@ function formatRow<T extends { id: number | string }>(row: T): T & { id: string 
 function parseId(id: string | number): number {
   const num = typeof id === 'number' ? id : parseInt(id, 10);
   return isNaN(num) ? 0 : num;
-}
-
-// -------------------------------------------------------------
-// SEEDING HELPER
-// -------------------------------------------------------------
-export async function seedDatabaseIfEmpty() {
-  try {
-    const existingProfiles = await db.select().from(schema.profiles).limit(1);
-    if (existingProfiles.length === 0) {
-      console.log('Seeding PostgreSQL database with Gunjan Shrestha initial portfolio data...');
-
-      // 1. Profile
-      await db.insert(schema.profiles).values({
-        name: initialProfile.name,
-        headline: initialProfile.headline,
-        shortBio: initialProfile.shortBio,
-        longBio: initialProfile.longBio,
-        profileImageUrl: initialProfile.profileImageUrl,
-        visitingCardImageUrl: initialProfile.visitingCardImageUrl || '',
-        dateOfBirth: initialProfile.dateOfBirth || '',
-        address: initialProfile.address || '',
-        email: initialProfile.email,
-        alternateEmail: initialProfile.alternateEmail || '',
-        primaryEmailLabel: initialProfile.primaryEmailLabel || '',
-        alternateEmailLabel: initialProfile.alternateEmailLabel || '',
-        phone: initialProfile.phone || '',
-        secondaryPhone: initialProfile.secondaryPhone || '',
-        phoneDisplayOption: initialProfile.phoneDisplayOption || 'both',
-        whatsappNumber: initialProfile.whatsappNumber || 'primary',
-        location: initialProfile.location,
-        website: initialProfile.website,
-        availabilityStatus: initialProfile.availabilityStatus || 'available',
-        availabilityCustomNote: initialProfile.availabilityCustomNote || '',
-        timezone: initialProfile.timezone || 'Asia/Kathmandu',
-        responseTime: initialProfile.responseTime || '< 24 Hours',
-        languagesSpoken: initialProfile.languagesSpoken || [],
-      });
-
-      // 2. Site Settings
-      await db.insert(schema.siteSettings).values({
-        siteName: initialSiteSetting.siteName,
-        siteDescription: initialSiteSetting.siteDescription,
-        canonicalUrl: initialSiteSetting.canonicalUrl || 'https://www.gunjanshrestha.com.np',
-        logoUrl: initialSiteSetting.logoUrl,
-        faviconUrl: initialSiteSetting.faviconUrl,
-        profileImageUrl: initialSiteSetting.profileImageUrl,
-        email: initialSiteSetting.email,
-        phone: initialSiteSetting.phone || '',
-        location: initialSiteSetting.location,
-        footerText: initialSiteSetting.footerText,
-        accentColor: initialSiteSetting.accentColor,
-        maintenanceMode: initialSiteSetting.maintenanceMode,
-        analyticsEnabled: initialSiteSetting.analyticsEnabled,
-        defaultSeoTitle: initialSiteSetting.defaultSeoTitle,
-        defaultSeoDescription: initialSiteSetting.defaultSeoDescription,
-        defaultOgImageUrl: initialSiteSetting.defaultOgImageUrl,
-        seoKeywords: initialSiteSetting.seoKeywords || '',
-        allowIndexing: initialSiteSetting.allowIndexing ?? true,
-        googleSiteVerification: initialSiteSetting.googleSiteVerification || '',
-        googleAnalyticsId: initialSiteSetting.googleAnalyticsId || '',
-        customHeadSnippet: initialSiteSetting.customHeadSnippet || '',
-      });
-
-      // 3. Educations
-      for (const edu of initialEducations) {
-        await db.insert(schema.educations).values({
-          institution: edu.institution,
-          qualification: edu.qualification,
-          field: edu.field || '',
-          location: edu.location || '',
-          startDate: edu.startDate || '',
-          endDate: edu.endDate || '',
-          description: edu.description || '',
-          displayOrder: edu.displayOrder,
-          published: edu.published,
-        });
-      }
-
-      // 4. Experiences
-      for (const exp of initialExperiences) {
-        await db.insert(schema.experiences).values({
-          category: exp.category,
-          title: exp.title,
-          roleTitle: exp.roleTitle || '',
-          organization: exp.organization || '',
-          location: exp.location || '',
-          startDate: exp.startDate || '',
-          endDate: exp.endDate || '',
-          isCurrent: exp.isCurrent,
-          shortDescription: exp.shortDescription,
-          description: exp.description,
-          tags: exp.tags,
-          imageUrl: exp.imageUrl || '',
-          featured: exp.featured,
-          displayOrder: exp.displayOrder,
-          published: exp.published,
-        });
-      }
-
-      // 5. Skill Categories and Skills
-      for (const cat of initialSkillCategories) {
-        const insertedCat = await db.insert(schema.skillCategories).values({
-          name: cat.name,
-          slug: cat.slug,
-          description: cat.description || '',
-          displayOrder: cat.displayOrder,
-          published: cat.published,
-        }).returning();
-
-        const catId = insertedCat[0].id;
-        const relatedSkills = initialSkills.filter(s => s.categoryId === cat.id);
-        for (const skill of relatedSkills) {
-          await db.insert(schema.skills).values({
-            categoryId: catId,
-            name: skill.name,
-            slug: skill.slug,
-            description: skill.description || '',
-            icon: skill.icon || '',
-            displayOrder: skill.displayOrder,
-            published: skill.published,
-          });
-        }
-      }
-
-      // 6. Services
-      for (const srv of initialServices) {
-        await db.insert(schema.services).values({
-          title: srv.title,
-          slug: srv.slug,
-          shortDescription: srv.shortDescription,
-          description: srv.description,
-          icon: srv.icon || '',
-          displayOrder: srv.displayOrder,
-          featured: srv.featured,
-          published: srv.published,
-        });
-      }
-
-      // 7. Projects & Project Images
-      for (const proj of initialProjects) {
-        const insertedProj = await db.insert(schema.projects).values({
-          title: proj.title,
-          slug: proj.slug,
-          category: proj.category,
-          shortSummary: proj.shortSummary,
-          overview: proj.overview || '',
-          problem: proj.problem || '',
-          approach: proj.approach || '',
-          design: proj.design || '',
-          technology: proj.technology || '',
-          result: proj.result || '',
-          heroImage: proj.heroImage || '',
-          liveUrl: proj.liveUrl || '',
-          githubUrl: proj.githubUrl || '',
-          seoTitle: proj.seoTitle || '',
-          seoDescription: proj.seoDescription || '',
-          canonicalUrl: proj.canonicalUrl || '',
-          featured: proj.featured,
-          published: proj.published,
-          displayOrder: proj.displayOrder,
-        }).returning();
-
-        if (proj.images && proj.images.length > 0) {
-          for (const img of proj.images) {
-            await db.insert(schema.projectImages).values({
-              projectId: insertedProj[0].id,
-              url: img.url,
-              altText: img.altText || '',
-              caption: img.caption || '',
-              displayOrder: img.displayOrder || 0,
-            });
-          }
-        }
-      }
-
-      // 8. Gallery Images
-      for (const img of initialGalleryImages) {
-        await db.insert(schema.galleryImages).values({
-          url: img.url,
-          altText: img.altText,
-          caption: img.caption || '',
-          category: img.category || '',
-          width: img.width || 800,
-          height: img.height || 600,
-          featured: img.featured,
-          published: img.published,
-          displayOrder: img.displayOrder,
-        });
-      }
-
-      // 9. Blog Categories & Blog Posts
-      const catMap = new Map<string, number>();
-      for (const post of initialBlogPosts) {
-        let catId: number | null = null;
-        if (post.category) {
-          if (!catMap.has(post.category)) {
-            const slug = post.category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            const newCat = await db.insert(schema.blogCategories).values({
-              name: post.category,
-              slug,
-              description: `${post.category} insights and articles`,
-            }).onConflictDoNothing().returning();
-            if (newCat[0]) catMap.set(post.category, newCat[0].id);
-          }
-          catId = catMap.get(post.category) || null;
-        }
-
-        await db.insert(schema.blogPosts).values({
-          title: post.title,
-          slug: post.slug,
-          excerpt: post.excerpt,
-          coverImageUrl: post.coverImageUrl,
-          content: post.content,
-          category: post.category || '',
-          categoryId: catId,
-          readingTime: post.readingTime || 5,
-          publishedAt: new Date(post.publishedAt || Date.now()),
-          status: post.status || 'PUBLISHED',
-          featured: post.featured,
-          tags: post.tags,
-          seoTitle: post.seoTitle || '',
-          seoDescription: post.seoDescription || '',
-          canonicalUrl: post.canonicalUrl || '',
-        });
-      }
-
-      // 10. Social Links
-      for (const link of initialSocialLinks) {
-        await db.insert(schema.socialLinks).values({
-          platform: link.platform,
-          label: link.label,
-          url: link.url,
-          icon: link.icon || '',
-          displayOrder: link.displayOrder,
-          published: link.published,
-        });
-      }
-
-      // 11. Content Categories
-      for (const cat of initialContentCategories) {
-        await db.insert(schema.contentCategories).values({
-          name: cat.name,
-          slug: cat.slug,
-          type: cat.type || 'GENERAL',
-          description: cat.description || '',
-          displayOrder: cat.displayOrder,
-        }).onConflictDoNothing();
-      }
-
-      // 12. Admin User
-      await db.insert(schema.users).values({
-        uid: 'admin_gunjan',
-        email: 'gunjanstha01@gmail.com',
-        passwordHash: 'gunjan2026',
-        isActive: true,
-      }).onConflictDoNothing();
-
-      console.log('PostgreSQL database seeded successfully.');
-    } else {
-      // Check if contentCategories or admin users need seeding
-      const existingContentCats = await db.select().from(schema.contentCategories).limit(1);
-      if (existingContentCats.length === 0) {
-        for (const cat of initialContentCategories) {
-          await db.insert(schema.contentCategories).values({
-            name: cat.name,
-            slug: cat.slug,
-            type: cat.type || 'GENERAL',
-            description: cat.description || '',
-            displayOrder: cat.displayOrder,
-          }).onConflictDoNothing();
-        }
-      }
-
-      const existingUsers = await db.select().from(schema.users).limit(1);
-      if (existingUsers.length === 0) {
-        await db.insert(schema.users).values({
-          uid: 'admin_gunjan',
-          email: 'gunjanstha01@gmail.com',
-          passwordHash: 'gunjan2026',
-          isActive: true,
-        }).onConflictDoNothing();
-      }
-    }
-  } catch (error) {
-    console.error('Database seeding error:', error);
-  }
 }
 
 // -------------------------------------------------------------
@@ -362,7 +62,7 @@ export async function getPublicPortfolioData() {
     });
 
     return {
-      profile: profileList[0] ? formatRow(profileList[0]) : initialProfile,
+      profile: profileList[0] ? formatRow(profileList[0]) : null,
       experiences: experiencesList.map(formatRow),
       educations: educationsList.map(formatRow),
       skillCategories: skillCatsList.map(formatRow),
@@ -376,7 +76,7 @@ export async function getPublicPortfolioData() {
       })),
       contentCategories: contentCatsList.map(formatRow),
       socialLinks: socialsList.map(formatRow),
-      siteSettings: settingsList[0] ? formatRow(settingsList[0]) : initialSiteSetting,
+      siteSettings: settingsList[0] ? formatRow(settingsList[0]) : null,
     };
   } catch (error: any) {
     console.warn('Database query error in getPublicPortfolioData:', error?.message || error);
@@ -438,7 +138,7 @@ export async function getAllAdminPortfolioData() {
     });
 
     return {
-      profile: profileList[0] ? formatRow(profileList[0]) : initialProfile,
+      profile: profileList[0] ? formatRow(profileList[0]) : null,
       experiences: experiencesList.map(formatRow),
       educations: educationsList.map(formatRow),
       skillCategories: skillCatsList.map(formatRow),
@@ -452,7 +152,7 @@ export async function getAllAdminPortfolioData() {
       })),
       contentCategories: contentCatsList.map(formatRow),
       socialLinks: socialsList.map(formatRow),
-      siteSettings: settingsList[0] ? formatRow(settingsList[0]) : initialSiteSetting,
+      siteSettings: settingsList[0] ? formatRow(settingsList[0]) : null,
       contactMessages: contactMessagesList.map(formatRow),
       auditLogs: auditLogsList.map(l => ({ ...formatRow(l), metadata: l.metadata as Record<string, any> })),
       adminSessions: adminSessionsList,
@@ -469,7 +169,7 @@ export async function getAllAdminPortfolioData() {
 // -------------------------------------------------------------
 export async function getProfile() {
   const rows = await db.select().from(schema.profiles).limit(1);
-  return rows[0] ? formatRow(rows[0]) : initialProfile;
+  return rows[0] ? formatRow(rows[0]) : null;
 }
 
 export async function updateProfile(data: any) {
@@ -477,7 +177,7 @@ export async function updateProfile(data: any) {
     const existing = await db.select().from(schema.profiles).limit(1);
     if (existing.length === 0) {
       const inserted = await db.insert(schema.profiles).values({
-        name: data.name || initialProfile.name,
+        name: data.name || '',
         ...data,
       }).returning();
       return formatRow(inserted[0]);
@@ -1009,14 +709,14 @@ export async function deleteSocialLink(id: string | number) {
 // -------------------------------------------------------------
 export async function getSiteSettings() {
   const rows = await db.select().from(schema.siteSettings).limit(1);
-  return rows[0] ? formatRow(rows[0]) : initialSiteSetting;
+  return rows[0] ? formatRow(rows[0]) : null;
 }
 
 export async function updateSiteSettings(data: any) {
   const existing = await db.select().from(schema.siteSettings).limit(1);
   if (existing.length === 0) {
     const inserted = await db.insert(schema.siteSettings).values({
-      siteName: data.siteName || initialSiteSetting.siteName,
+      siteName: data.siteName || '',
       ...data,
     }).returning();
     return formatRow(inserted[0]);
@@ -1211,28 +911,5 @@ export async function deleteAllAdminSessions() {
 // RESET / RESTORE TO INITIAL POSTGRESQL STATE
 // -------------------------------------------------------------
 export async function resetAndReseedDatabase() {
-  console.log('Resetting and reseeding PostgreSQL database...');
-  // Delete all rows in order of foreign key dependency
-  await db.delete(schema.auditLogs);
-  await db.delete(schema.contactMessages);
-  await db.delete(schema.projectImages);
-  await db.delete(schema.projects);
-  await db.delete(schema.blogPosts);
-  await db.delete(schema.blogCategories);
-  await db.delete(schema.contentCategories);
-  await db.delete(schema.galleryImages);
-  await db.delete(schema.services);
-  await db.delete(schema.skills);
-  await db.delete(schema.skillCategories);
-  await db.delete(schema.experiences);
-  await db.delete(schema.educations);
-  await db.delete(schema.socialLinks);
-  await db.delete(schema.siteSettings);
-  await db.delete(schema.profiles);
-  await db.delete(schema.adminSessions);
-  await db.delete(schema.users);
-
-  // Re-seed from scratch
-  await seedDatabaseIfEmpty();
-  return { success: true, message: 'Database reset and re-seeded successfully.' };
+  return { success: true, message: 'All portfolio data is queried and managed directly in PostgreSQL database.' };
 }

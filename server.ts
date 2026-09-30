@@ -7,7 +7,6 @@ import apiRouter from './src/api/index.ts';
 import { securityHeaders, sanitizeInput } from './src/api/common/middleware/security.middleware.ts';
 import { errorHandler } from './src/api/common/errors/errorHandler.ts';
 import { authenticateToken } from './src/api/common/middleware/auth.middleware.ts';
-import { seedDatabaseIfEmpty } from './src/db/queries.ts';
 
 async function startServer() {
   const app = express();
@@ -29,12 +28,7 @@ async function startServer() {
   // 4. Centralized error handling middleware for API routes
   app.use('/api', errorHandler);
 
-  // 5. Seed PostgreSQL database if tables are empty
-  seedDatabaseIfEmpty().catch((err) => {
-    console.warn('Initial PostgreSQL DB seeding note:', err?.message || err);
-  });
-
-  // 6. Vite development middleware or static production serving
+  // 5. Vite development middleware or static production serving
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
       server: { middlewareMode: true },

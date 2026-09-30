@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { db, createPool } from './index.ts';
-import { resetAndReseedDatabase, getPublicPortfolioData, getAllAdminPortfolioData } from './queries.ts';
+import { getPublicPortfolioData, getAllAdminPortfolioData } from './queries.ts';
 
 const DDL_STATEMENTS = `
 CREATE TABLE IF NOT EXISTS users (
@@ -288,12 +288,8 @@ async function runSeed() {
       console.log('   DDL note: Tables already exist or managed by schema migrations.');
     }
 
-    // 2. Reset and reseed records
-    console.log('2. Seeding initial records into tables...');
-    await resetAndReseedDatabase();
-
-    // 3. Inspect seeded summary counts
-    console.log('3. Validating seeded data integrity...');
+    // 2. Inspect database record counts via direct queries
+    console.log('2. Validating stored data via database queries...');
     const adminData = await getAllAdminPortfolioData();
     const publicData = await getPublicPortfolioData();
 

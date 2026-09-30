@@ -6,7 +6,6 @@ import apiRouter from '../src/api/index.ts';
 import { securityHeaders, sanitizeInput } from '../src/api/common/middleware/security.middleware.ts';
 import { authenticateToken } from '../src/api/common/middleware/auth.middleware.ts';
 import { errorHandler } from '../src/api/common/errors/errorHandler.ts';
-import { seedDatabaseIfEmpty } from '../src/db/queries.ts';
 import { createAuthToken } from '../src/api/common/utils/token.utils.ts';
 
 let server: http.Server;
@@ -14,9 +13,6 @@ let baseUrl: string;
 let adminCookie: string;
 
 beforeAll(async () => {
-  // Ensure DB seed is complete
-  await seedDatabaseIfEmpty();
-
   const app = express();
   app.use(securityHeaders);
   app.use(cookieParser());
