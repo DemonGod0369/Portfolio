@@ -10,6 +10,8 @@ declare global {
 export const createPool = () => {
   if (!global._postgresPool) {
     const connectionString = process.env.DATABASE_URL;
+    console.log(process.env.SQL_HOST,connectionString
+      , ":HOST")
 
     if (connectionString) {
       global._postgresPool = new Pool({

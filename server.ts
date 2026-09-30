@@ -11,7 +11,7 @@ import { authenticateToken } from './src/api/common/middleware/auth.middleware.t
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
-
+  console.log(PORT, ":POrt")
   // 1. Core security & body parsing middleware
   app.use(securityHeaders);
   app.use(cookieParser());
