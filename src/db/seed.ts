@@ -2,7 +2,16 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { createPool } from './index.ts';
-import { getPublicPortfolioData, getAllAdminPortfolioData } from './queries.ts';
+import {
+  getPublicPortfolioData,
+  getAllAdminPortfolioData,
+} from './queries.ts';
+
+/**
+ * ------------------------------------------------------------
+ * Database schema
+ * ------------------------------------------------------------
+ */
 
 const DDL_STATEMENTS = `
 CREATE TABLE IF NOT EXISTS users (
@@ -274,76 +283,301 @@ CREATE TABLE IF NOT EXISTS admin_sessions (
 );
 `;
 
-async function runSeed() {
-  const pool = createPool();
-  console.log('----------------------------------------------------');
-  console.log('Gunjan Shrestha Platform — PostgreSQL Database Seeder');
-  console.log('----------------------------------------------------');
+/**
+ * ------------------------------------------------------------
+ * Helpers
+ * ------------------------------------------------------------
+ */
+
+function validateDatabaseUrl() {
+  const databaseUrl = process.env.DATABASE_URL?.trim();
+
+  if (!databaseUrl) {
+    throw new Error(
+      'DATABASE_URL is not defined. Check your .env file.'
+    );
+  }
+
+  let parsed: URL;
 
   try {
-    // 1. Ensure all tables exist (for fresh local databases)
-    console.log('1. Verifying database table structures...');
-    try {
-      await pool.query(DDL_STATEMENTS);
-      console.log('   Tables verified/created successfully.');
-    } catch (ddlErr: any) {
-      console.log('   DDL note: Tables already exist or managed by schema migrations.');
+    parsed = new URL(databaseUrl);
+  } catch {
+    throw new Error(
+      'DATABASE_URL is invalid. Make sure it is a valid PostgreSQL URL.'
+    );
+  }
+
+  if (
+    parsed.protocol !== 'postgresql:' &&
+    parsed.protocol !== 'postgres:'
+  ) {
+    throw new Error(
+      `Invalid DATABASE_URL protocol: ${parsed.protocol}. Expected postgresql:// or postgres://`
+    );
+  }
+
+  if (!parsed.hostname) {
+    throw new Error('DATABASE_URL does not contain a database host.');
+  }
+
+  if (!parsed.username) {
+    throw new Error('DATABASE_URL does not contain a database username.');
+  }
+
+  if (!parsed.pathname || parsed.pathname === '/') {
+    throw new Error(
+      'DATABASE_URL does not contain a database name.'
+    );
+  }
+
+  // Never print the password.
+  const safeUrl = new URL(databaseUrl);
+  safeUrl.password = '********';
+
+  console.log(`Database: ${safeUrl.toString()}`);
+
+  return databaseUrl;
+}
+
+/**
+ * ------------------------------------------------------------
+ * Main seed function
+ * ------------------------------------------------------------
+ */
+
+async function runSeed() {
+  console.log('----------------------------------------------------');
+  console.log(
+    'Gunjan Shrestha Platform — PostgreSQL Database Seeder'
+  );
+  console.log('----------------------------------------------------');
+
+  let pool: ReturnType<typeof createPool> | null = null;
+
+  try {
+    /**
+     * 0. Validate DATABASE_URL before creating the pool.
+     */
+    console.log('0. Checking database configuration...');
+
+    validateDatabaseUrl();
+
+    /**
+     * 1. Create PostgreSQL connection pool.
+     */
+    console.log('1. Connecting to PostgreSQL...');
+
+    pool = createPool();
+
+    await pool.query('SELECT 1');
+
+    console.log('   PostgreSQL connection successful.');
+
+    /**
+     * 2. Create database tables.
+     */
+    console.log('2. Creating/verifying database tables...');
+
+    await pool.query(DDL_STATEMENTS);
+
+    console.log('   Tables verified/created successfully.');
+
+    /**
+     * 3. Load seed.sql.
+     *
+     * Expected location:
+     *
+     * project-root/
+     * ├── seed.sql
+     * ├── package.json
+     * ├── .env
+     * └── src/
+     *     └── db/
+     *         └── seed.ts
+     */
+    const sqlFilePath = path.resolve(
+      process.cwd(),
+      'seed.sql'
+    );
+
+    console.log(`3. Looking for seed file: ${sqlFilePath}`);
+
+    if (!fs.existsSync(sqlFilePath)) {
+      throw new Error(
+        `seed.sql was not found at:\n${sqlFilePath}`
+      );
     }
 
-    // 2. Execute SQL seed file to populate initial verified records
-    const sqlFilePath = path.join(process.cwd(), 'seed.sql');
-    if (fs.existsSync(sqlFilePath)) {
-      console.log('2. Seeding initial records into tables from seed.sql...');
-      const sqlContent = fs.readFileSync(sqlFilePath, 'utf8');
-      try {
-        await pool.query(sqlContent);
-        console.log('   Initial data seeded successfully.');
-      } catch (seedErr: any) {
-        console.warn('   Seed notice:', seedErr?.message || seedErr);
+    const sqlContent = fs.readFileSync(
+      sqlFilePath,
+      'utf8'
+    ).trim();
+
+    if (!sqlContent) {
+      throw new Error('seed.sql is empty.');
+    }
+
+    console.log(
+      `   seed.sql loaded successfully (${sqlContent.length} characters).`
+    );
+
+    /**
+     * 4. Execute seed SQL.
+     *
+     * IMPORTANT:
+     * Do NOT swallow errors here.
+     */
+    console.log('4. Executing seed.sql...');
+
+    try {
+      await pool.query(sqlContent);
+      console.log('   Seed SQL executed successfully.');
+    } catch (seedErr: any) {
+      console.error('');
+      console.error('====================================================');
+      console.error('SEED SQL FAILED');
+      console.error('====================================================');
+      console.error(seedErr?.message || seedErr);
+
+      if (seedErr?.detail) {
+        console.error('Detail:', seedErr.detail);
       }
-    } else {
-      console.log('2. seed.sql not found, continuing with existing database records...');
+
+      if (seedErr?.hint) {
+        console.error('Hint:', seedErr.hint);
+      }
+
+      if (seedErr?.position) {
+        console.error('Position:', seedErr.position);
+      }
+
+      console.error('====================================================');
+      console.error('');
+
+      throw seedErr;
     }
 
-    // 3. Ensure default admin user exists
-    try {
-      await pool.query(`
-        INSERT INTO users (uid, email, password_hash, is_active)
-        VALUES ('admin_gunjan', 'gunjanstha01@gmail.com', 'gunjan2026', true)
-        ON CONFLICT (email) DO NOTHING;
-      `);
-    } catch {
-      // ignore
-    }
+    /**
+     * 5. Ensure admin user exists.
+     */
+    console.log('5. Verifying admin user...');
 
-    // 4. Validate stored data via database queries
-    console.log('3. Validating stored data via database queries...');
+    await pool.query(`
+      INSERT INTO users (
+        uid,
+        email,
+        password_hash,
+        is_active
+      )
+      VALUES (
+        'admin_gunjan',
+        'gunjanstha01@gmail.com',
+        'gunjan2026',
+        true
+      )
+      ON CONFLICT (email)
+      DO UPDATE SET
+        is_active = true;
+    `);
+
+    console.log('   Admin user verified.');
+
+    /**
+     * 6. Validate database contents.
+     */
+    console.log('6. Validating stored data...');
+
     const adminData = await getAllAdminPortfolioData();
     const publicData = await getPublicPortfolioData();
 
+    /**
+     * 7. Print summary.
+     */
+    console.log('');
     console.log('----------------------------------------------------');
-    console.log('Database Seeding Complete! Summary:');
-    console.log(`- Profile:            1 record (${publicData.profile?.name || 'Gunjan Shrestha'})`);
-    console.log(`- Experiences:        ${publicData.experiences.length} career milestones`);
-    console.log(`- Educations:         ${publicData.educations.length} academic credentials`);
-    console.log(`- Skill Categories:   ${publicData.skillCategories.length} categories`);
-    console.log(`- Skills:             ${publicData.skills.length} skills`);
-    console.log(`- Services:           ${publicData.services.length} services`);
-    console.log(`- Projects:           ${publicData.projects.length} case studies`);
-    console.log(`- Visual Assets:      ${publicData.galleryImages.length} gallery images`);
-    console.log(`- Articles / Blogs:   ${publicData.blogPosts.length} posts`);
-    console.log(`- Content Categories: ${publicData.contentCategories.length} categories`);
-    console.log(`- Social Links:       ${publicData.socialLinks.length} links`);
-    console.log(`- Site Settings:      1 record (${publicData.siteSettings?.siteName || 'Gunjan Shrestha'})`);
-    console.log(`- Admin User:         ${adminData.adminUser?.email || 'gunjanstha01@gmail.com'}`);
+    console.log('Database Seeding Complete!');
     console.log('----------------------------------------------------');
-    console.log('Status: PostgreSQL database ready for development & production!');
+
+    console.log(
+      `- Profile:            ${
+        publicData.profile?.name || 'Not found'
+      }`
+    );
+
+    console.log(
+      `- Experiences:        ${publicData.experiences.length}`
+    );
+
+    console.log(
+      `- Educations:         ${publicData.educations.length}`
+    );
+
+    console.log(
+      `- Skill Categories:   ${publicData.skillCategories.length}`
+    );
+
+    console.log(
+      `- Skills:             ${publicData.skills.length}`
+    );
+
+    console.log(
+      `- Services:           ${publicData.services.length}`
+    );
+
+    console.log(
+      `- Projects:           ${publicData.projects.length}`
+    );
+
+    console.log(
+      `- Visual Assets:      ${publicData.galleryImages.length}`
+    );
+
+    console.log(
+      `- Articles / Blogs:   ${publicData.blogPosts.length}`
+    );
+
+    console.log(
+      `- Content Categories: ${publicData.contentCategories.length}`
+    );
+
+    console.log(
+      `- Social Links:       ${publicData.socialLinks.length}`
+    );
+
+    console.log(
+      `- Site Settings:      ${
+        publicData.siteSettings ? '1' : '0'
+      }`
+    );
+
+    console.log(
+      `- Admin User:         ${
+        adminData.adminUser?.email || 'Not found'
+      }`
+    );
+
+    console.log('----------------------------------------------------');
+    console.log(
+      'Status: PostgreSQL database ready.'
+    );
+    console.log('----------------------------------------------------');
 
     await pool.end();
     process.exit(0);
+
   } catch (err: any) {
-    console.error('Database seeding failed:', err);
-    await pool.end().catch(() => {});
+    console.error('');
+    console.error('====================================================');
+    console.error('DATABASE SEEDING FAILED');
+    console.error('====================================================');
+    console.error(err?.message || err);
+    console.error('====================================================');
+
+    if (pool) {
+      await pool.end().catch(() => {});
+    }
+
     process.exit(1);
   }
 }
