@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import * as queries from '../src/db/queries.ts';
-import { prisma } from '../src/db/connection.ts';
 
 describe('PostgreSQL Dynamic Database Integration & Full CRUD Suite', () => {
   it('READ: retrieves dynamic portfolio data on initial load from PostgreSQL', async () => {
     const data = await queries.getPublicPortfolioData();
     expect(data).toBeDefined();
     expect(data.profile).toBeDefined();
-    expect(data.profile.name).toBe('Gunjan Shrestha');
+    expect(data.profile?.name).toBe('Gunjan Shrestha');
     expect(Array.isArray(data.experiences)).toBe(true);
     expect(data.experiences.length).toBeGreaterThan(0);
     expect(Array.isArray(data.projects)).toBe(true);
@@ -176,7 +175,7 @@ describe('PostgreSQL Dynamic Database Integration & Full CRUD Suite', () => {
   // 6. Site Settings
   it('SITE SETTINGS: updates and persists site configuration', async () => {
     const original = await queries.getSiteSettings();
-    expect(original.siteName).toBeDefined();
+    expect(original?.siteName).toBeDefined();
 
     const updated = await queries.updateSiteSettings({
       footerText: '© Gunjan Shrestha. All Rights Reserved. Powered by PostgreSQL.',
@@ -185,7 +184,7 @@ describe('PostgreSQL Dynamic Database Integration & Full CRUD Suite', () => {
 
     // Restore
     await queries.updateSiteSettings({
-      footerText: original.footerText,
+      footerText: original?.footerText || '',
     });
   });
 });

@@ -16,15 +16,9 @@ import {
   TrendingUp,
   Layers,
   Calendar,
-  Clock,
-  Compass,
-  Code2,
-  Boxes,
-  Zap,
-  ExternalLink,
-  ChevronRight
+  Clock
 } from 'lucide-react';
-import { motion, AnimatePresence, useScroll, useTransform, useSpring, useMotionValue } from 'motion/react';
+import { motion, useScroll, useTransform, useSpring, useMotionValue } from 'motion/react';
 
 /* ========================================================================= */
 /* 1. HERO SECTION (MULTI-PLANE PARALLAX & 3D INTERACTIVE TILT)              */
@@ -88,6 +82,7 @@ export const HeroSection: React.FC = () => {
           <motion.div style={{ y: textY }} className="lg:col-span-7 space-y-8">
             {/* Live Trust & Security Badge */}
             <motion.div
+              style={{ y: badgeFloat }}
               initial={{ opacity: 0, y: 15 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}

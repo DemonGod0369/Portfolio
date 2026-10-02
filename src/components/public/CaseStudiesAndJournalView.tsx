@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useData } from '../../context/DataContext';
 import { useTheme } from '../../context/ThemeContext';
+import { Project, BlogPost } from '../../types';
 import { 
   ArrowRight, 
   ArrowUpRight, 
-  Clock, 
   Search, 
   SlidersHorizontal, 
   FolderKanban, 
@@ -34,8 +34,8 @@ export interface UnifiedItem {
   date: string;
   readingTime?: number;
   tags: string[];
-  originalProject?: any;
-  originalBlog?: any;
+  originalProject?: Project;
+  originalBlog?: BlogPost;
 }
 
 const ITEMS_PER_PAGE = 9;
@@ -178,9 +178,6 @@ export const CaseStudiesAndJournalView: React.FC = () => {
     setSearchQuery(val);
     setCurrentPage(1);
   };
-
-  const caseStudyCount = unifiedItems.filter(i => i.type === 'CASE_STUDY').length;
-  const journalCount = unifiedItems.filter(i => i.type === 'JOURNAL').length;
 
   return (
     <div className="py-12 md:py-20 animate-fade-in">

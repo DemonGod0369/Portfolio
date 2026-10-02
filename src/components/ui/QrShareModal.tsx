@@ -213,7 +213,7 @@ export const QrShareModal: React.FC<QrShareModalProps> = ({
         {/* Mobile Horizontal Platform Scroll Rail */}
         <div className="md:hidden border-b border-[#1f1f1f] bg-[#0c0c0c] px-3 py-2 overflow-x-auto shrink-0">
           <div className="flex items-center gap-2 min-w-max">
-            {targetOptions.map((opt, idx) => {
+            {targetOptions.map((opt) => {
               const isSelected = selectedTarget === opt.id;
               return (
                 <button

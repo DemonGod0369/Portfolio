@@ -62,7 +62,7 @@ export async function runSecurityDiagnosis(data: DiagnosisInput): Promise<Diagno
 
   // Check 2: PostgreSQL Cloud SQL Database Latency & Zero-LocalStorage Architecture
   const c2Start = performance.now();
-  let dbLatencyMs = 2.4;
+  let dbLatencyMs: number;
   try {
     const pingStart = performance.now();
     await fetch('/api/health');

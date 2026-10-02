@@ -450,7 +450,7 @@ export async function downloadVisitingCardImage(imageUrl: string, personName: st
       URL.revokeObjectURL(blobUrl);
       return;
     }
-  } catch (e) {
+  } catch {
     // Fallback if CORS prevents blob fetch
   }
 

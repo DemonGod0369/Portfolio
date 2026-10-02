@@ -40,6 +40,14 @@ describe('Stage L Test Suite: Platform Security & Data Integrity', () => {
       const longEmail = 'user@example.com'.repeat(30);
       const truncatedEmail = longEmail.slice(0, maxEmailLen);
       expect(truncatedEmail.length).toBeLessThanOrEqual(254);
+
+      const longSubject = 'S'.repeat(300);
+      const truncatedSubject = longSubject.slice(0, maxSubjectLen);
+      expect(truncatedSubject.length).toBe(200);
+
+      const longMsg = 'M'.repeat(6000);
+      const truncatedMsg = longMsg.slice(0, maxMessageLen);
+      expect(truncatedMsg.length).toBe(5000);
     });
 
     it('verifies that sensitive fields are not leaked in audit metadata', () => {

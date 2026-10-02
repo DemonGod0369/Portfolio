@@ -270,7 +270,7 @@ export const ImageUploadField: React.FC<ImageUploadFieldProps> = ({
                   <img
                     src={value}
                     alt="Preview before save"
-                    className="w-full h-full object-contain rounded-sm transition-opacity duration-200"
+                    className={`w-full h-full object-contain rounded-sm transition-opacity duration-200 ${imgLoaded ? 'opacity-100' : 'opacity-80'}`}
                     onError={() => setImgError(true)}
                     onLoad={() => {
                       setImgError(false);

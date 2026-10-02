@@ -40,7 +40,7 @@ export function detectBrowserClientPlatform(): ClientPlatformInfo {
   } else if (/Windows/i.test(ua)) {
     os = 'Windows';
   } else if (/Android/i.test(ua)) {
-    const androidMatch = ua.match(/Android\s([0-9\.]+)/i);
+    const androidMatch = ua.match(/Android\s([0-9.]+)/i);
     os = androidMatch ? `Android ${androidMatch[1]}` : 'Android';
   } else if (/iPhone/i.test(ua)) {
     const iosMatch = ua.match(/OS\s([0-9_]+)/i);
@@ -48,7 +48,7 @@ export function detectBrowserClientPlatform(): ClientPlatformInfo {
   } else if (/iPad/i.test(ua) || (platform === 'MacIntel' && maxTouchPoints > 1)) {
     os = 'iPadOS';
   } else if (/Macintosh|Mac OS X/i.test(ua)) {
-    const macMatch = ua.match(/Mac OS X\s?([0-9_\.]+)?/i);
+    const macMatch = ua.match(/Mac OS X\s?([0-9_.]+)?/i);
     if (macMatch && macMatch[1]) {
       const version = macMatch[1].replace(/_/g, '.');
       os = `macOS (${version})`;
@@ -65,32 +65,32 @@ export function detectBrowserClientPlatform(): ClientPlatformInfo {
   let browser = 'Unknown Browser';
   let browserVersion = '';
 
-  if (/Edg\/([0-9\.]+)/i.test(ua)) {
-    const match = ua.match(/Edg\/([0-9\.]+)/i);
+  if (/Edg\/([0-9.]+)/i.test(ua)) {
+    const match = ua.match(/Edg\/([0-9.]+)/i);
     browser = 'Microsoft Edge';
     browserVersion = match ? match[1].split('.')[0] : '';
-  } else if (/OPR\/([0-9\.]+)/i.test(ua) || /Opera\/([0-9\.]+)/i.test(ua)) {
-    const match = ua.match(/(?:OPR|Opera)\/([0-9\.]+)/i);
+  } else if (/OPR\/([0-9.]+)/i.test(ua) || /Opera\/([0-9.]+)/i.test(ua)) {
+    const match = ua.match(/(?:OPR|Opera)\/([0-9.]+)/i);
     browser = 'Opera';
     browserVersion = match ? match[1].split('.')[0] : '';
-  } else if (/Vivaldi\/([0-9\.]+)/i.test(ua)) {
-    const match = ua.match(/Vivaldi\/([0-9\.]+)/i);
+  } else if (/Vivaldi\/([0-9.]+)/i.test(ua)) {
+    const match = ua.match(/Vivaldi\/([0-9.]+)/i);
     browser = 'Vivaldi';
     browserVersion = match ? match[1].split('.')[0] : '';
-  } else if (/SamsungBrowser\/([0-9\.]+)/i.test(ua)) {
-    const match = ua.match(/SamsungBrowser\/([0-9\.]+)/i);
+  } else if (/SamsungBrowser\/([0-9.]+)/i.test(ua)) {
+    const match = ua.match(/SamsungBrowser\/([0-9.]+)/i);
     browser = 'Samsung Internet';
     browserVersion = match ? match[1].split('.')[0] : '';
-  } else if (/Chrome\/([0-9\.]+)/i.test(ua)) {
-    const match = ua.match(/Chrome\/([0-9\.]+)/i);
+  } else if (/Chrome\/([0-9.]+)/i.test(ua)) {
+    const match = ua.match(/Chrome\/([0-9.]+)/i);
     browser = 'Google Chrome';
     browserVersion = match ? match[1].split('.')[0] : '';
-  } else if (/Firefox\/([0-9\.]+)/i.test(ua)) {
-    const match = ua.match(/Firefox\/([0-9\.]+)/i);
+  } else if (/Firefox\/([0-9.]+)/i.test(ua)) {
+    const match = ua.match(/Firefox\/([0-9.]+)/i);
     browser = 'Mozilla Firefox';
     browserVersion = match ? match[1].split('.')[0] : '';
-  } else if (/Safari\/([0-9\.]+)/i.test(ua) && !/Chrome/i.test(ua)) {
-    const versionMatch = ua.match(/Version\/([0-9\.]+)/i);
+  } else if (/Safari\/([0-9.]+)/i.test(ua) && !/Chrome/i.test(ua)) {
+    const versionMatch = ua.match(/Version\/([0-9.]+)/i);
     browser = 'Apple Safari';
     browserVersion = versionMatch ? versionMatch[1].split('.')[0] : '';
   }
