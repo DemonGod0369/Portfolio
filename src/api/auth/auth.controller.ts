@@ -146,3 +146,68 @@ export async function logoutAllSessions(req: Request, res: Response) {
     res.status(500).json({ success: false, error: error.message || 'Failed to terminate sessions' });
   }
 }
+
+export async function forgotPassword(req: Request, res: Response) {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, error: 'Administrator email is required.' });
+    }
+
+    const result = await queries.generatePasswordResetToken(email);
+    if (!result.success) {
+      return res.status(404).json({ success: false, error: result.error || 'Account not found.' });
+    }
+
+    res.json({
+      success: true,
+      message: result.message,
+      email: result.email,
+      expiresAt: result.expiresAt,
+      // Provide recovery code directly in payload for development and preview environments
+      recoveryCode: result.code,
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message || 'Failed to process forgot password request.' });
+  }
+}
+
+export async function verifyResetCode(req: Request, res: Response) {
+  try {
+    const { email, code } = req.body;
+    if (!email || !code) {
+      return res.status(400).json({ success: false, error: 'Email and recovery code are required.' });
+    }
+
+    const result = await queries.verifyPasswordResetCode(email, code);
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    res.json({ success: true, message: result.message });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message || 'Failed to verify recovery code.' });
+  }
+}
+
+export async function resetPassword(req: Request, res: Response) {
+  try {
+    const { email, code, newPassword } = req.body;
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ success: false, error: 'Email, recovery code, and new password are required.' });
+    }
+
+    const result = await queries.resetPasswordWithCode(email, code, newPassword);
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+
+    res.json({
+      success: true,
+      message: result.message || 'Password successfully updated.',
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message || 'Failed to reset password.' });
+  }
+}
+

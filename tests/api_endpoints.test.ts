@@ -92,6 +92,97 @@ describe('Modular API Endpoints & Professional Backend Suite', () => {
       const res = await fetch(`${baseUrl}/api/auth/me`);
       expect(res.status).toBe(401);
     });
+
+    it('POST /api/auth/forgot-password: fails for unregistered email', async () => {
+      const res = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'unknown_user_99@gmail.com' }),
+      });
+      expect(res.status).toBe(404);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+    });
+
+    let recoveryCode = '';
+    it('POST /api/auth/forgot-password: generates 6-digit code for registered administrator', async () => {
+      const res = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'gunjanstha01@gmail.com' }),
+      });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+      expect(json.recoveryCode).toBeDefined();
+      expect(json.recoveryCode.length).toBe(6);
+      recoveryCode = json.recoveryCode;
+    });
+
+    it('POST /api/auth/verify-reset-code: rejects invalid code', async () => {
+      const res = await fetch(`${baseUrl}/api/auth/verify-reset-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'gunjanstha01@gmail.com', code: '000000' }),
+      });
+      expect(res.status).toBe(400);
+      const json = await res.json();
+      expect(json.success).toBe(false);
+    });
+
+    it('POST /api/auth/verify-reset-code: accepts valid recovery code', async () => {
+      const res = await fetch(`${baseUrl}/api/auth/verify-reset-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'gunjanstha01@gmail.com', code: recoveryCode }),
+      });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+    });
+
+    it('POST /api/auth/reset-password: resets password and enables login with new credentials', async () => {
+      const res = await fetch(`${baseUrl}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'gunjanstha01@gmail.com',
+          code: recoveryCode,
+          newPassword: 'gunjan2026_testreset',
+        }),
+      });
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json.success).toBe(true);
+
+      // Verify new login works
+      const loginRes = await fetch(`${baseUrl}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'gunjanstha01@gmail.com',
+          password: 'gunjan2026_testreset',
+        }),
+      });
+      expect(loginRes.status).toBe(200);
+
+      // Restore password back to gunjan2026 for following tests
+      const forgotRes = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: 'gunjanstha01@gmail.com' }),
+      });
+      const forgotJson = await forgotRes.json();
+      await fetch(`${baseUrl}/api/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'gunjanstha01@gmail.com',
+          code: forgotJson.recoveryCode,
+          newPassword: 'gunjan2026',
+        }),
+      });
+    });
   });
 
   // 3. Public Portfolio Initial Load

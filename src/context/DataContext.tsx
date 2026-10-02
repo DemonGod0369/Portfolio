@@ -84,6 +84,9 @@ interface DataContextType {
   isAdminAuthenticated: boolean;
   adminLogin: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   adminLogout: () => void;
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; message?: string; recoveryCode?: string; expiresAt?: string }>;
+  verifyPasswordResetCode: (email: string, code: string) => Promise<{ success: boolean; message?: string }>;
+  resetPasswordWithCode: (email: string, code: string, newPassword: string) => Promise<{ success: boolean; message?: string }>;
   
   // Data Entities (Dynamic from PostgreSQL)
   profile: Profile;
@@ -422,6 +425,66 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsAdminAuthenticated(false);
     showToast('Signed out of Admin CMS.');
     setCurrentRoute('home');
+  };
+
+  const requestPasswordReset = async (email: string) => {
+    try {
+      const res = await apiFetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        return {
+          success: true,
+          message: data.message || 'One-time recovery code generated.',
+          recoveryCode: data.recoveryCode,
+          expiresAt: data.expiresAt,
+        };
+      }
+      return { success: false, message: data.error || 'Failed to request recovery code.' };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, message: 'Server communication error: ' + err.message };
+    }
+  };
+
+  const verifyPasswordResetCode = async (email: string, code: string) => {
+    try {
+      const res = await apiFetch('/api/auth/verify-reset-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.error || 'Invalid or expired recovery code.' };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, message: 'Server communication error: ' + err.message };
+    }
+  };
+
+  const resetPasswordWithCode = async (email: string, code: string, newPassword: string) => {
+    try {
+      const res = await apiFetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code, newPassword }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Password updated. You can now log in with your new credentials.');
+        return { success: true, message: data.message };
+      }
+      return { success: false, message: data.error || 'Failed to reset password.' };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, message: 'Server communication error: ' + err.message };
+    }
   };
 
   // -------------------------------------------------------------
@@ -1294,6 +1357,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAdminAuthenticated,
         adminLogin,
         adminLogout,
+        requestPasswordReset,
+        verifyPasswordResetCode,
+        resetPasswordWithCode,
         profile,
         updateProfile,
         experiences,

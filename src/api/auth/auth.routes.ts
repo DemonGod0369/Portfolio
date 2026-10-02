@@ -13,6 +13,9 @@ const loginLimiter = rateLimiter({
 });
 
 router.post('/login', loginLimiter, authController.login);
+router.post('/forgot-password', loginLimiter, authController.forgotPassword);
+router.post('/verify-reset-code', loginLimiter, authController.verifyResetCode);
+router.post('/reset-password', loginLimiter, authController.resetPassword);
 router.get('/me', authenticateToken, authController.me);
 router.post('/logout', authController.logout);
 router.put('/credentials', requireAdmin, authController.updateCredentials);

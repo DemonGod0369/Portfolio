@@ -52,6 +52,8 @@ apiRouter.use('/audit-logs', auditRoutes);
 // Direct convenient endpoints
 apiRouter.post('/contact', messageController.submitContact);
 apiRouter.post('/admin/login', authController.login);
+apiRouter.post('/admin/forgot-password', authController.forgotPassword);
+apiRouter.post('/admin/reset-password', authController.resetPassword);
 apiRouter.put('/admin/credentials', requireAdmin, authController.updateCredentials);
 apiRouter.get('/admin/sessions', authController.getSessions);
 apiRouter.post('/admin/sessions', authController.upsertSession);
