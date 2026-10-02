@@ -1,7 +1,6 @@
-import { describe, it, expect, beforeAll } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import * as queries from '../src/db/queries.ts';
-import { db } from '../src/db/index.ts';
-import * as schema from '../src/db/schema.ts';
+import { prisma } from '../src/db/connection.ts';
 
 describe('PostgreSQL Dynamic Database Integration & Full CRUD Suite', () => {
   it('READ: retrieves dynamic portfolio data on initial load from PostgreSQL', async () => {

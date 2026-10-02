@@ -1,7 +1,11 @@
 -- Gunjan Shrestha Portfolio Database Schema & Seed
--- Target: PostgreSQL 14+ / 15+ / 16+
+-- Target: PostgreSQL 14+ / 15+ / 16+ / Google Cloud SQL
+-- Synchronized with Prisma ORM Schema & seed.ts
 
--- 1. Create Tables
+-- =============================================================
+-- 1. CREATE TABLES (Exact match with Prisma models)
+-- =============================================================
+
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     uid TEXT NOT NULL UNIQUE,
@@ -20,10 +24,24 @@ CREATE TABLE IF NOT EXISTS profiles (
     short_bio TEXT,
     long_bio TEXT,
     profile_image_url TEXT,
+    visiting_card_image_url TEXT,
+    date_of_birth TEXT,
+    address TEXT,
     email TEXT,
+    alternate_email TEXT,
+    primary_email_label TEXT,
+    alternate_email_label TEXT,
     phone TEXT,
+    secondary_phone TEXT,
+    phone_display_option TEXT,
+    whatsapp_number TEXT,
     location TEXT,
     website TEXT,
+    availability_status TEXT,
+    availability_custom_note TEXT,
+    timezone TEXT,
+    response_time TEXT,
+    languages_spoken TEXT[],
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -47,6 +65,7 @@ CREATE TABLE IF NOT EXISTS experiences (
     id SERIAL PRIMARY KEY,
     category TEXT NOT NULL,
     title TEXT NOT NULL,
+    role_title TEXT,
     organization TEXT,
     location TEXT,
     start_date TEXT,
@@ -113,6 +132,12 @@ CREATE TABLE IF NOT EXISTS projects (
     design TEXT,
     technology TEXT,
     result TEXT,
+    hero_image TEXT,
+    live_url TEXT,
+    github_url TEXT,
+    seo_title TEXT,
+    seo_description TEXT,
+    canonical_url TEXT,
     featured BOOLEAN NOT NULL DEFAULT false,
     published BOOLEAN NOT NULL DEFAULT true,
     display_order INTEGER NOT NULL DEFAULT 0,
@@ -164,6 +189,7 @@ CREATE TABLE IF NOT EXISTS blog_posts (
     excerpt TEXT,
     cover_image_url TEXT,
     content TEXT NOT NULL,
+    category TEXT,
     category_id INTEGER REFERENCES blog_categories(id) ON DELETE SET NULL,
     reading_time INTEGER,
     published_at TIMESTAMP,
@@ -206,6 +232,7 @@ CREATE TABLE IF NOT EXISTS site_settings (
     id SERIAL PRIMARY KEY,
     site_name TEXT NOT NULL,
     site_description TEXT,
+    canonical_url TEXT,
     logo_url TEXT,
     favicon_url TEXT,
     profile_image_url TEXT,
@@ -219,8 +246,36 @@ CREATE TABLE IF NOT EXISTS site_settings (
     default_seo_title TEXT,
     default_seo_description TEXT,
     default_og_image_url TEXT,
+    seo_keywords TEXT,
+    allow_indexing BOOLEAN NOT NULL DEFAULT true,
+    google_site_verification TEXT,
+    google_analytics_id TEXT,
+    custom_head_snippet TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS content_categories (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    type TEXT NOT NULL DEFAULT 'GENERAL',
+    description TEXT,
+    display_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS admin_sessions (
+    id TEXT PRIMARY KEY,
+    device_type TEXT NOT NULL,
+    browser TEXT NOT NULL,
+    os TEXT NOT NULL,
+    ip_address TEXT,
+    location TEXT,
+    screen_resolution TEXT,
+    last_active_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS audit_logs (
@@ -235,24 +290,44 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- 2. Seed Initial Profile & Settings
-INSERT INTO profiles (name, headline, short_bio, long_bio, profile_image_url, email, phone, location, website)
-VALUES (
+-- =============================================================
+-- 2. SEED INITIAL DATA (Idempotent: ON CONFLICT DO NOTHING)
+-- =============================================================
+
+-- 2.1 Profile
+INSERT INTO profiles (
+    name, headline, short_bio, long_bio, profile_image_url, visiting_card_image_url,
+    date_of_birth, address, email, phone, location, website, availability_status,
+    timezone, response_time, languages_spoken
+) VALUES (
     'Gunjan Shrestha',
     'Multidisciplinary Founder & Operator — Operations, Finance, Tech & Design',
     'Multidisciplinary founder and operator based in Kathmandu, focused on building businesses that can scale beyond local markets and operate at an international level.',
     'I believe people are defined by their work and their commitment to continuous improvement—learning from mistakes, taking responsibility, and consistently raising the bar. My background spans founding and operating ventures from the ground up: managing technology stacks, brand design, custom fine jewellery craftsmanship, and end-to-end digital strategies, alongside leading office operations, financial accounts, reporting, and cross-functional teams in software development and UI design.\n\nAlongside this, I have built extensive expertise in accounting, company auditing, and the legal and compliance frameworks required to run well-structured businesses. My focus is expanding this to international standards to build and scale multinational ventures combining strong operations, sound financial governance, and thoughtful brand strategy.',
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
+    '1997-01-01',
+    'Kathmandu, Bagmati, Nepal',
     'gunjanstha01@gmail.com',
     '+977 9800000000',
     'Kathmandu, Nepal',
-    'https://www.gunjanshrestha.com.np'
+    'https://www.gunjanshrestha.com.np',
+    'Available for Strategic Advisory & Multinational Ventures',
+    'UTC+5:45 (Kathmandu)',
+    'Within 24 Hours',
+    ARRAY['English', 'Nepali', 'Newari', 'Hindi']
 ) ON CONFLICT DO NOTHING;
 
-INSERT INTO site_settings (site_name, site_description, logo_url, favicon_url, profile_image_url, email, phone, location, footer_text, accent_color, maintenance_mode, analytics_enabled, default_seo_title, default_seo_description, default_og_image_url)
-VALUES (
+-- 2.2 Site Settings
+INSERT INTO site_settings (
+    site_name, site_description, canonical_url, logo_url, favicon_url, profile_image_url,
+    email, phone, location, footer_text, accent_color, maintenance_mode,
+    analytics_enabled, default_seo_title, default_seo_description, default_og_image_url,
+    allow_indexing
+) VALUES (
     'Gunjan Shrestha | Founder & Operator',
     'Official portfolio of Gunjan Shrestha: Operations, financial auditing, bespoke fine jewellery manufacturing, brand design, and scalable technology systems.',
+    'https://www.gunjanshrestha.com.np',
     'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=200&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=64&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
@@ -265,25 +340,26 @@ VALUES (
     false,
     'Gunjan Shrestha — Executive Portfolio & Ventures',
     'Multidisciplinary Founder & Operator based in Kathmandu, Nepal.',
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop'
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop',
+    true
 ) ON CONFLICT DO NOTHING;
 
--- 3. Educations
+-- 2.3 Educations
 INSERT INTO educations (institution, qualification, field, location, start_date, end_date, description, display_order, published)
 VALUES
 ('Tribhuvan University', 'Bachelor of Business Studies (BBS)', 'Accounting, Financial Audit & Corporate Law', 'Kathmandu, Nepal', '2017', '2021', 'Focused on statutory audit standards, mercantile law, tax accounting, and organizational leadership.', 1, true),
 ('National Secondary School', '+2 Higher Secondary Education', 'Management & Accountancy', 'Kathmandu, Nepal', '2015', '2017', 'Graduated with distinction in principles of accounting, business mathematics, and economics.', 2, true)
 ON CONFLICT DO NOTHING;
 
--- 4. Experiences
-INSERT INTO experiences (category, title, organization, location, start_date, end_date, is_current, short_description, description, tags, image_url, featured, display_order, published)
+-- 2.4 Experiences
+INSERT INTO experiences (category, title, role_title, organization, location, start_date, end_date, is_current, short_description, description, tags, image_url, featured, display_order, published)
 VALUES
-('Operations & Management', 'Operations, Accounts & Cross-Functional Management', 'Technology & Systems Enterprise', 'Kathmandu, Nepal', '2023', NULL, true, 'Leading office operations, logistics, accounting, financial reporting, and cross-functional software/design execution.', 'Shaping how the enterprise runs and scales. Work spans office operations, logistical systems, financial ledgers, compliance reporting, and steering cross-functional initiatives across software development, digital graphics, and UI/UX design workflows.', ARRAY['Operations', 'Financial Accounting', 'Reporting', 'Cross-Functional Leadership', 'Logistics', 'Software & UI'], 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=800&auto=format&fit=crop', true, 1, true),
-('Entrepreneurship & Craftsmanship', 'Founder, Master Craftsman & Brand Director', 'Gunjan Fine Jewellery', 'Kathmandu & International', '2021', NULL, true, 'Founding and scaling a bespoke fine jewellery atelier combining traditional goldsmithing with modern 3D CAD design.', 'Built an independent atelier brand from scratch. Directing every dimension: precious metal sourcing, CAD design, wax casting, gemmological grading, client advisory, packaging design, and worldwide fulfillment.', ARRAY['Jewellery Manufacturing', 'CAD Design', 'Gemmology', 'Luxury Branding', 'Direct-to-Consumer', 'Global Shipping'], 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop', true, 2, true),
-('Finance & Corporate Governance', 'Financial Auditor & Corporate Accounts Specialist', 'Commercial Audit Practice', 'Kathmandu, Nepal', '2020', '2023', false, 'Conducted statutory audits, prepared trial balances and financial statements, and reviewed tax compliance across mid-size companies.', 'Specialized in rigorous internal controls and financial transparency. Prepared audit files, tested ledger integrity, reconciled banking operations, and drafted compliance recommendations for executive boards.', ARRAY['Statutory Audit', 'Corporate Taxation', 'Internal Controls', 'Financial Statements', 'Due Diligence'], 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=800&auto=format&fit=crop', false, 3, true)
+('Operations & Management', 'Operations, Accounts & Cross-Functional Management', 'Head of Operations & Controller', 'Technology & Systems Enterprise', 'Kathmandu, Nepal', '2023', NULL, true, 'Leading office operations, logistics, accounting, financial reporting, and cross-functional software/design execution.', 'Shaping how the enterprise runs and scales. Work spans office operations, logistical systems, financial ledgers, compliance reporting, and steering cross-functional initiatives across software development, digital graphics, and UI/UX design workflows.', ARRAY['Operations', 'Financial Accounting', 'Reporting', 'Cross-Functional Leadership', 'Logistics', 'Software & UI'], 'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=800&auto=format&fit=crop', true, 1, true),
+('Entrepreneurship & Craftsmanship', 'Founder, Master Craftsman & Brand Director', 'Founder & Creative Director', 'Gunjan Fine Jewellery', 'Kathmandu & International', '2021', NULL, true, 'Founding and scaling a bespoke fine jewellery atelier combining traditional goldsmithing with modern 3D CAD design.', 'Built an independent atelier brand from scratch. Directing every dimension: precious metal sourcing, CAD design, wax casting, gemmological grading, client advisory, packaging design, and worldwide fulfillment.', ARRAY['Jewellery Manufacturing', 'CAD Design', 'Gemmology', 'Luxury Branding', 'Direct-to-Consumer', 'Global Shipping'], 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=800&auto=format&fit=crop', true, 2, true),
+('Finance & Corporate Governance', 'Financial Auditor & Corporate Accounts Specialist', 'Senior Audit Associate', 'Commercial Audit Practice', 'Kathmandu, Nepal', '2020', '2023', false, 'Conducted statutory audits, prepared trial balances and financial statements, and reviewed tax compliance across mid-size companies.', 'Specialized in rigorous internal controls and financial transparency. Prepared audit files, tested ledger integrity, reconciled banking operations, and drafted compliance recommendations for executive boards.', ARRAY['Statutory Audit', 'Corporate Taxation', 'Internal Controls', 'Financial Statements', 'Due Diligence'], 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=800&auto=format&fit=crop', false, 3, true)
 ON CONFLICT DO NOTHING;
 
--- 5. Skill Categories
+-- 2.5 Skill Categories
 INSERT INTO skill_categories (id, name, slug, description, display_order, published)
 VALUES
 (1, 'Executive Operations & Leadership', 'operations-leadership', 'Managing operations, workflows, cross-functional teams, and logistics.', 1, true),
@@ -293,7 +369,7 @@ VALUES
 (5, 'Brand Strategy & Visual Design', 'brand-design', 'High-end branding, UI/UX systems, photography direction, and packaging.', 5, true)
 ON CONFLICT (slug) DO NOTHING;
 
--- 6. Skills
+-- 2.6 Skills
 INSERT INTO skills (category_id, name, slug, description, icon, display_order, published)
 VALUES
 (1, 'Operations Management', 'operations-management', 'Standard operating procedures, office workflows, vendor management, and fulfillment pipelines.', 'briefcase', 1, true),
@@ -307,7 +383,7 @@ VALUES
 (5, 'Luxury Identity & Packaging', 'luxury-identity', 'Bespoke box packaging, brand typography, and unboxing experience architecture.', 'palette', 1, true)
 ON CONFLICT (slug) DO NOTHING;
 
--- 7. Services
+-- 2.7 Services
 INSERT INTO services (title, slug, short_description, description, icon, display_order, featured, published)
 VALUES
 ('Executive Operations & Growth Advisory', 'operations-growth-advisory', 'Structuring standard operating procedures, logistics, and accountability frameworks for expanding ventures.', 'Diagnosing operational bottlenecks and instituting clear systems that enable businesses to scale without chaos.', 'briefcase', 1, true, true),
@@ -316,8 +392,8 @@ VALUES
 ('Digital Product & Technical Architecture', 'technical-architecture', 'Modern web applications, internal operational dashboards, and digital platforms built with precision.', 'Designing and deploying scalable web applications that combine high aesthetic polish with reliable backend code.', 'code-2', 4, true, true)
 ON CONFLICT (slug) DO NOTHING;
 
--- 8. Projects
-INSERT INTO projects (title, slug, category, short_summary, overview, problem, approach, design, technology, result, featured, published, display_order)
+-- 2.8 Projects
+INSERT INTO projects (title, slug, category, short_summary, overview, problem, approach, design, technology, result, hero_image, featured, published, display_order)
 VALUES
 (
     'Gunjan Fine Jewellery: Global Bespoke Atelier',
@@ -330,6 +406,7 @@ VALUES
     'Minimalist luxury aesthetic: warm champagnes, deep charcoal velvets, and architectural geometry.',
     'Matrix 3D CAD, Rhino 3D, High-Resolution 3D Wax Printers, React E-Commerce Portal, PostgreSQL.',
     'Delivered dozens of bespoke bridal and ceremonial heirlooms across Nepal, the US, and Australia with zero defect returns.',
+    'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop',
     true, true, 1
 ),
 (
@@ -341,13 +418,14 @@ VALUES
     'Businesses frequently waste hundreds of hours manually cross-checking paper receipts and multiple bank accounts during tax season.',
     'Created a rule-based matching engine that automatically detects reconciliation discrepancies and flags missing tax invoices before filing.',
     'Clean high-density tabular UI with color-coded discrepancy highlights and rapid filter shortcuts.',
-    'Node.js, PostgreSQL, TypeScript, Drizzle ORM, Nginx, Linux VPS.',
+    'Node.js, PostgreSQL, TypeScript, Prisma ORM, Nginx, Linux VPS.',
     'Cut audit preparation cycle time by 65% and eliminated ledger discrepancy errors during statutory reviews.',
+    'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1200&auto=format&fit=crop',
     true, true, 2
 )
 ON CONFLICT (slug) DO NOTHING;
 
--- 9. Gallery Images
+-- 2.9 Gallery Images
 INSERT INTO gallery_images (url, alt_text, caption, category, width, height, featured, published, display_order)
 VALUES
 ('https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop', 'Bespoke Solitaire Diamond Ring in 18k Yellow Gold', 'Custom 1.50ct cushion cut solitaire handcrafted in our Kathmandu atelier.', 'Fine Jewellery', 1200, 800, true, true, 1),
@@ -356,7 +434,14 @@ VALUES
 ('https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200&auto=format&fit=crop', 'Modern High-Performance Server Architecture', 'Production container systems, Nginx ingress routing, and database clustering.', 'Technology', 1200, 800, false, true, 4)
 ON CONFLICT DO NOTHING;
 
--- 10. Blog Posts
+-- 2.10 Blog Categories
+INSERT INTO blog_categories (id, name, slug, description)
+VALUES
+(1, 'Corporate Governance & Auditing', 'corporate-governance', 'Insights on statutory audits, financial controls, and risk management.'),
+(2, 'Fine Jewellery & Metallurgy', 'fine-jewellery-metallurgy', 'Craftsmanship, 3D CAD modeling, and gems manufacturing.')
+ON CONFLICT (slug) DO NOTHING;
+
+-- 2.11 Blog Posts
 INSERT INTO blog_posts (title, slug, excerpt, cover_image_url, content, reading_time, published_at, status, featured, tags, seo_title, seo_description)
 VALUES
 (
@@ -389,7 +474,16 @@ VALUES
 )
 ON CONFLICT (slug) DO NOTHING;
 
--- 11. Social Links
+-- 2.12 Content Categories
+INSERT INTO content_categories (name, slug, type, description, display_order)
+VALUES
+('Executive Operations & Systems', 'operations-systems', 'OPERATIONS', 'SOPs, logistical architectures, and cross-functional leadership frameworks.', 1),
+('Financial Accounting & Statutory Audit', 'finance-audit', 'FINANCE', 'Chart of accounts, reconciliation engines, and fiscal hygiene.', 2),
+('Fine Jewellery & Atelier Craft', 'jewellery-craft', 'DESIGN', '3D CAD micro-modeling, precious metallurgy, and gemmological standards.', 3),
+('Technology & Digital Architecture', 'tech-architecture', 'TECHNOLOGY', 'High-performance web applications, Linux servers, and relational databases.', 4)
+ON CONFLICT (slug) DO NOTHING;
+
+-- 2.13 Social Links
 INSERT INTO social_links (platform, label, url, icon, display_order, published)
 VALUES
 ('LinkedIn', 'LinkedIn Official', 'https://www.linkedin.com/in/gunjan-shrestha', 'linkedin', 1, true),
@@ -398,7 +492,7 @@ VALUES
 ('WhatsApp', 'Direct Message', 'https://wa.me/9779800000000', 'message-circle', 4, true)
 ON CONFLICT DO NOTHING;
 
--- 12. Admin User
+-- 2.14 Admin User
 INSERT INTO users (uid, email, password_hash, is_active)
 VALUES ('admin_gunjan', 'gunjanstha01@gmail.com', 'gunjan2026', true)
 ON CONFLICT (email) DO NOTHING;

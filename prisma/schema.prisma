@@ -1,0 +1,334 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  uid          String    @unique
+  email        String    @unique
+  passwordHash String?   @map("password_hash")
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Profile {
+  id                     Int       @id @default(autoincrement())
+  name                   String
+  headline               String?
+  shortBio               String?   @map("short_bio")
+  longBio                String?   @map("long_bio")
+  profileImageUrl        String?   @map("profile_image_url")
+  visitingCardImageUrl   String?   @map("visiting_card_image_url")
+  dateOfBirth            String?   @map("date_of_birth")
+  address                String?
+  email                  String?
+  alternateEmail         String?   @map("alternate_email")
+  primaryEmailLabel      String?   @map("primary_email_label")
+  alternateEmailLabel    String?   @map("alternate_email_label")
+  phone                  String?
+  secondaryPhone         String?   @map("secondary_phone")
+  phoneDisplayOption     String?   @map("phone_display_option")
+  whatsappNumber         String?   @map("whatsapp_number")
+  location               String?
+  website                String?
+  availabilityStatus     String?   @map("availability_status")
+  availabilityCustomNote String?   @map("availability_custom_note")
+  timezone               String?
+  responseTime           String?   @map("response_time")
+  languagesSpoken        String[]  @map("languages_spoken")
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+model Education {
+  id            Int      @id @default(autoincrement())
+  institution   String
+  qualification String
+  field         String?
+  location      String?
+  startDate     String?  @map("start_date")
+  endDate       String?  @map("end_date")
+  description   String?
+  displayOrder  Int      @default(0) @map("display_order")
+  published     Boolean  @default(true)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("educations")
+}
+
+model Experience {
+  id               Int      @id @default(autoincrement())
+  category         String
+  title            String
+  roleTitle        String?  @map("role_title")
+  organization     String?
+  location         String?
+  startDate        String?  @map("start_date")
+  endDate          String?  @map("end_date")
+  isCurrent        Boolean  @default(false) @map("is_current")
+  shortDescription String?  @map("short_description")
+  description      String?
+  tags             String[]
+  imageUrl         String?  @map("image_url")
+  featured         Boolean  @default(false)
+  displayOrder     Int      @default(0) @map("display_order")
+  published        Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("experiences")
+}
+
+model SkillCategory {
+  id           Int      @id @default(autoincrement())
+  name         String
+  slug         String   @unique
+  description  String?
+  displayOrder Int      @default(0) @map("display_order")
+  published    Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  skills       Skill[]
+
+  @@map("skill_categories")
+}
+
+model Skill {
+  id           Int           @id @default(autoincrement())
+  categoryId   Int           @map("category_id")
+  name         String
+  slug         String        @unique
+  description  String?
+  icon         String?
+  displayOrder Int           @default(0) @map("display_order")
+  published    Boolean       @default(true)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @default(now()) @updatedAt @map("updated_at")
+  category     SkillCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@map("skills")
+}
+
+model Service {
+  id               Int      @id @default(autoincrement())
+  title            String
+  slug             String   @unique
+  shortDescription String?  @map("short_description")
+  description      String?
+  icon             String?
+  displayOrder     Int      @default(0) @map("display_order")
+  featured         Boolean  @default(false)
+  published        Boolean  @default(true)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("services")
+}
+
+model Project {
+  id             Int            @id @default(autoincrement())
+  title          String
+  slug           String         @unique
+  category       String?
+  shortSummary   String?        @map("short_summary")
+  overview       String?
+  problem        String?
+  approach       String?
+  design         String?
+  technology     String?
+  result         String?
+  heroImage      String?        @map("hero_image")
+  liveUrl        String?        @map("live_url")
+  githubUrl      String?        @map("github_url")
+  seoTitle       String?        @map("seo_title")
+  seoDescription String?        @map("seo_description")
+  canonicalUrl   String?        @map("canonical_url")
+  featured       Boolean        @default(false)
+  published      Boolean        @default(true)
+  displayOrder   Int            @default(0) @map("display_order")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @default(now()) @updatedAt @map("updated_at")
+  images         ProjectImage[]
+
+  @@map("projects")
+}
+
+model ProjectImage {
+  id           Int      @id @default(autoincrement())
+  projectId    Int      @map("project_id")
+  url          String
+  altText      String?  @map("alt_text")
+  caption      String?
+  width        Int?
+  height       Int?
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("project_images")
+}
+
+model GalleryImage {
+  id           Int      @id @default(autoincrement())
+  url          String
+  altText      String   @map("alt_text")
+  caption      String?
+  category     String?
+  width        Int?
+  height       Int?
+  featured     Boolean  @default(false)
+  published    Boolean  @default(true)
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("gallery_images")
+}
+
+model BlogCategory {
+  id          Int        @id @default(autoincrement())
+  name        String
+  slug        String     @unique
+  description String?
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @default(now()) @updatedAt @map("updated_at")
+  posts       BlogPost[]
+
+  @@map("blog_categories")
+}
+
+model BlogPost {
+  id             Int           @id @default(autoincrement())
+  title          String
+  slug           String        @unique
+  excerpt        String?
+  coverImageUrl  String?       @map("cover_image_url")
+  content        String
+  category       String?
+  categoryId     Int?          @map("category_id")
+  readingTime    Int?          @map("reading_time")
+  publishedAt    DateTime?     @map("published_at")
+  status         String        @default("DRAFT")
+  featured       Boolean       @default(false)
+  tags           String[]
+  seoTitle       String?       @map("seo_title")
+  seoDescription String?       @map("seo_description")
+  canonicalUrl   String?       @map("canonical_url")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @default(now()) @updatedAt @map("updated_at")
+  blogCategory   BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@map("blog_posts")
+}
+
+model ContactMessage {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String
+  subject   String
+  message   String
+  status    String   @default("NEW")
+  ipHash    String?  @map("ip_hash")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("contact_messages")
+}
+
+model SocialLink {
+  id           Int      @id @default(autoincrement())
+  platform     String
+  label        String
+  url          String
+  icon         String?
+  displayOrder Int      @default(0) @map("display_order")
+  published    Boolean  @default(true)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("social_links")
+}
+
+model SiteSetting {
+  id                     Int      @id @default(autoincrement())
+  siteName               String   @map("site_name")
+  siteDescription        String?  @map("site_description")
+  canonicalUrl           String?  @map("canonical_url")
+  logoUrl                String?  @map("logo_url")
+  faviconUrl             String?  @map("favicon_url")
+  profileImageUrl        String?  @map("profile_image_url")
+  email                  String?
+  phone                  String?
+  location               String?
+  footerText             String?  @map("footer_text")
+  accentColor            String?  @map("accent_color")
+  maintenanceMode        Boolean  @default(false) @map("maintenance_mode")
+  analyticsEnabled       Boolean  @default(false) @map("analytics_enabled")
+  defaultSeoTitle        String?  @map("default_seo_title")
+  defaultSeoDescription  String?  @map("default_seo_description")
+  defaultOgImageUrl      String?  @map("default_og_image_url")
+  seoKeywords            String?  @map("seo_keywords")
+  allowIndexing          Boolean  @default(true) @map("allow_indexing")
+  googleSiteVerification String?  @map("google_site_verification")
+  googleAnalyticsId      String?  @map("google_analytics_id")
+  customHeadSnippet      String?  @map("custom_head_snippet")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
+model ContentCategory {
+  id           Int      @id @default(autoincrement())
+  name         String
+  slug         String   @unique
+  type         String   @default("GENERAL")
+  description  String?
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@map("content_categories")
+}
+
+model AdminSession {
+  id               String   @id
+  deviceType       String   @map("device_type")
+  browser          String
+  os               String
+  ipAddress        String?  @map("ip_address")
+  location         String?
+  screenResolution String?  @map("screen_resolution")
+  lastActiveAt     DateTime @default(now()) @map("last_active_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@map("admin_sessions")
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     String?  @map("user_id")
+  action     String
+  entityType String?  @map("entity_type")
+  entityId   String?  @map("entity_id")
+  metadata   Json?
+  ipHash     String?  @map("ip_hash")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}
