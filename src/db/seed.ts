@@ -2,6 +2,7 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { prisma, createPool } from './index.ts';
+import { ensureDatabaseSchema } from './migrate.ts';
 import { getPublicPortfolioData, getAllAdminPortfolioData } from './queries.ts';
 
 /**
@@ -38,7 +39,10 @@ async function runSeed() {
       console.warn('   SQL notice:', sqlErr?.message || sqlErr);
     }
 
-    // 3. Ensure the default super administrator user exists
+    // 3. Ensure schema migrations and columns exist
+    await ensureDatabaseSchema();
+
+    // 4. Ensure the default super administrator user exists
     try {
       await pool.query(`
         INSERT INTO users (uid, email, password_hash, is_active)

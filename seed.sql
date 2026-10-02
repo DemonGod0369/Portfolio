@@ -3,6 +3,28 @@
 -- Synchronized with Prisma ORM Schema & seed.ts
 
 -- =============================================================
+-- 0. CLEAN RESET (Drops existing tables for fresh clean seeding)
+-- =============================================================
+DROP TABLE IF EXISTS admin_sessions CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS contact_messages CASCADE;
+DROP TABLE IF EXISTS social_links CASCADE;
+DROP TABLE IF EXISTS content_categories CASCADE;
+DROP TABLE IF EXISTS blog_posts CASCADE;
+DROP TABLE IF EXISTS blog_categories CASCADE;
+DROP TABLE IF EXISTS gallery_images CASCADE;
+DROP TABLE IF EXISTS project_images CASCADE;
+DROP TABLE IF EXISTS projects CASCADE;
+DROP TABLE IF EXISTS services CASCADE;
+DROP TABLE IF EXISTS skills CASCADE;
+DROP TABLE IF EXISTS skill_categories CASCADE;
+DROP TABLE IF EXISTS experiences CASCADE;
+DROP TABLE IF EXISTS educations CASCADE;
+DROP TABLE IF EXISTS site_settings CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- =============================================================
 -- 1. CREATE TABLES (Exact match with Prisma models)
 -- =============================================================
 
@@ -297,7 +319,9 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 -- 2.1 Profile
 INSERT INTO profiles (
     name, headline, short_bio, long_bio, profile_image_url, visiting_card_image_url,
-    date_of_birth, address, email, phone, location, website, availability_status,
+    date_of_birth, address, email, alternate_email, primary_email_label, alternate_email_label,
+    phone, secondary_phone, phone_display_option, whatsapp_number,
+    location, website, availability_status, availability_custom_note,
     timezone, response_time, languages_spoken
 ) VALUES (
     'Gunjan Shrestha',
@@ -309,10 +333,17 @@ INSERT INTO profiles (
     '1997-01-01',
     'Kathmandu, Bagmati, Nepal',
     'gunjanstha01@gmail.com',
+    'contact@gunjanshrestha.com.np',
+    'Primary Direct',
+    'Inquiries',
+    '+977 9800000000',
+    '+977 9811111111',
+    'both',
     '+977 9800000000',
     'Kathmandu, Nepal',
     'https://www.gunjanshrestha.com.np',
     'Available for Strategic Advisory & Multinational Ventures',
+    'Accepting new executive advisory, bespoke jewellery commissions, and cross-border ventures.',
     'UTC+5:45 (Kathmandu)',
     'Within 24 Hours',
     ARRAY['English', 'Nepali', 'Newari', 'Hindi']
@@ -323,7 +354,7 @@ INSERT INTO site_settings (
     site_name, site_description, canonical_url, logo_url, favicon_url, profile_image_url,
     email, phone, location, footer_text, accent_color, maintenance_mode,
     analytics_enabled, default_seo_title, default_seo_description, default_og_image_url,
-    allow_indexing
+    seo_keywords, allow_indexing
 ) VALUES (
     'Gunjan Shrestha | Founder & Operator',
     'Official portfolio of Gunjan Shrestha: Operations, financial auditing, bespoke fine jewellery manufacturing, brand design, and scalable technology systems.',
@@ -335,12 +366,13 @@ INSERT INTO site_settings (
     '+977 9800000000',
     'Kathmandu, Nepal',
     'Crafted with architectural precision & relentless standards.',
-    '#f59e0b',
+    '#00E5FF',
     false,
     false,
     'Gunjan Shrestha — Executive Portfolio & Ventures',
     'Multidisciplinary Founder & Operator based in Kathmandu, Nepal.',
     'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop',
+    'Gunjan Shrestha, Founder, Operations, Finance, Audit, Fine Jewellery, Nepal, Technology',
     true
 ) ON CONFLICT DO NOTHING;
 
@@ -393,9 +425,10 @@ VALUES
 ON CONFLICT (slug) DO NOTHING;
 
 -- 2.8 Projects
-INSERT INTO projects (title, slug, category, short_summary, overview, problem, approach, design, technology, result, hero_image, featured, published, display_order)
+INSERT INTO projects (id, title, slug, category, short_summary, overview, problem, approach, design, technology, result, hero_image, featured, published, display_order)
 VALUES
 (
+    1,
     'Gunjan Fine Jewellery: Global Bespoke Atelier',
     'gunjan-fine-jewellery-atelier',
     'Luxury Brand & Manufacturing',
@@ -410,6 +443,7 @@ VALUES
     true, true, 1
 ),
 (
+    2,
     'Enterprise Financial Ledger & Audit Engine',
     'enterprise-financial-audit-engine',
     'Corporate Finance & Software',
@@ -424,6 +458,14 @@ VALUES
     true, true, 2
 )
 ON CONFLICT (slug) DO NOTHING;
+
+-- 2.8.1 Project Images
+INSERT INTO project_images (project_id, url, alt_text, caption, display_order)
+VALUES
+(1, 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop', 'CAD Render of Solitaire Ring', '3D Matrix CAD model preview before lost-wax casting', 1),
+(1, 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop', 'Finished Micro-Pave Claw Setting in 18k Gold', 'Hand-finished pavé diamond setting under microscope', 2),
+(2, 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1200&auto=format&fit=crop', 'Ledger Reconciliation Dashboard UI', 'Real-time reconciliation feed and variance flags', 1)
+ON CONFLICT DO NOTHING;
 
 -- 2.9 Gallery Images
 INSERT INTO gallery_images (url, alt_text, caption, category, width, height, featured, published, display_order)
@@ -496,3 +538,16 @@ ON CONFLICT DO NOTHING;
 INSERT INTO users (uid, email, password_hash, is_active)
 VALUES ('admin_gunjan', 'gunjanstha01@gmail.com', 'gunjan2026', true)
 ON CONFLICT (email) DO NOTHING;
+
+-- 2.15 Sample Contact Messages
+INSERT INTO contact_messages (name, email, subject, message, status)
+VALUES
+('Aarav Sharma', 'aarav.sharma@example.com', 'Bespoke Engagement Ring Inquiry', 'Hello Gunjan, I admire your fine jewellery atelier work. I would like to inquire about a custom 18k yellow gold emerald-cut diamond ring for late 2026.', 'NEW'),
+('Elena Rostova', 'elena.rostova@techscale.io', 'Executive Advisory & Operations Consulting', 'Hi Gunjan, we are scaling cross-functional teams in South Asia and would love to consult with you regarding financial control and operations management.', 'REPLIED')
+ON CONFLICT DO NOTHING;
+
+-- 2.16 Initial Audit Log
+INSERT INTO audit_logs (user_id, action, entity_type, entity_id, metadata)
+VALUES
+('admin_gunjan', 'DATABASE_SEED', 'SYSTEM', '1', '{"status": "SUCCESS", "message": "Database initialized with clean synchronized dataset"}'::jsonb)
+ON CONFLICT DO NOTHING;

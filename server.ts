@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { prisma } from './src/db/connection.ts';
+import { ensureDatabaseSchema } from './src/db/migrate.ts';
 import apiRouter from './src/api/index.ts';
 import { securityHeaders, sanitizeInput } from './src/api/common/middleware/security.middleware.ts';
 import { errorHandler } from './src/api/common/errors/errorHandler.ts';
@@ -29,6 +30,7 @@ async function startServer() {
   try {
     await prisma.$connect();
     console.log('Database connected successfully!');
+    await ensureDatabaseSchema();
   } catch (error) {
     console.error('Database connection failed:', error);
   }
