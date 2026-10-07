@@ -532,7 +532,7 @@ export const AdminProfileMasterManager: React.FC = () => {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Gunjan Shrestha"
+                      placeholder="Name"
                       value={profileForm.name}
                       onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
                       className="w-full pl-9 pr-3 py-2 bg-[#080808] border border-[#262626] text-xs font-mono text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
@@ -569,7 +569,7 @@ export const AdminProfileMasterManager: React.FC = () => {
                   <div className="relative">
                     <input
                       type="text"
-                      placeholder="e.g. Kathmandu, Bagmati Province, Nepal"
+                      placeholder="Location"
                       value={profileForm.address}
                       onChange={(e) => setProfileForm({ ...profileForm, address: e.target.value, location: e.target.value })}
                       className="w-full pl-9 pr-3 py-2 bg-[#080808] border border-[#262626] text-xs font-mono text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
@@ -588,7 +588,7 @@ export const AdminProfileMasterManager: React.FC = () => {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Multidisciplinary Founder & Operator..."
+                      placeholder="Headline"
                       value={profileForm.headline}
                       onChange={(e) => setProfileForm({ ...profileForm, headline: e.target.value })}
                       className="w-full pl-9 pr-3 py-2 bg-[#080808] border border-[#262626] text-xs font-mono text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
@@ -622,7 +622,7 @@ export const AdminProfileMasterManager: React.FC = () => {
                   <div className="relative">
                     <input
                       type="tel"
-                      placeholder="+977 9800000000"
+                      placeholder="Number"
                       value={profileForm.phone}
                       onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
                       className="w-full pl-9 pr-3 py-2 bg-[#080808] border border-[#262626] text-xs font-mono text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
@@ -642,7 +642,7 @@ export const AdminProfileMasterManager: React.FC = () => {
                   <div className="relative">
                     <input
                       type="tel"
-                      placeholder="+977 9811111111"
+                      placeholder="Number"
                       value={profileForm.secondaryPhone}
                       onChange={(e) => setProfileForm({ ...profileForm, secondaryPhone: e.target.value })}
                       className="w-full pl-9 pr-3 py-2 bg-[#080808] border border-[#262626] text-xs font-mono text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
@@ -818,6 +818,7 @@ export const AdminProfileMasterManager: React.FC = () => {
                       <input
                         type="email"
                         required
+                        placeholder="Email"
                         value={profileForm.email}
                         onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
                         className="w-full pl-9 pr-3 py-2 bg-[#080808] border border-[#262626] text-xs font-mono text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
@@ -852,7 +853,7 @@ export const AdminProfileMasterManager: React.FC = () => {
                     <div className="relative">
                       <input
                         type="email"
-                        placeholder="contact@gunjanshrestha.com.np"
+                        placeholder="Email"
                         value={profileForm.alternateEmail}
                         onChange={(e) => setProfileForm({ ...profileForm, alternateEmail: e.target.value })}
                         className="w-full pl-9 pr-3 py-2 bg-[#080808] border border-[#262626] text-xs font-mono text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
@@ -1558,7 +1559,7 @@ export const AdminProfileMasterManager: React.FC = () => {
                       disabled={expForm.isCurrent}
                       value={expForm.endDate}
                       onChange={(e) => setExpForm({ ...expForm, endDate: e.target.value })}
-                      placeholder={expForm.isCurrent ? 'Present' : '2024'}
+                      placeholder={expForm.isCurrent ? 'Present' : 'Year'}
                       className="w-full px-3 py-2 bg-[#080808] border border-[#262626] text-xs text-[#F5F5F5] rounded-sm disabled:opacity-50"
                     />
                   </div>

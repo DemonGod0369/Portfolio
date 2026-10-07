@@ -1255,8 +1255,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: params.newEmail,
+          currentEmail: currentAdminUser.email,
+          newEmail: params.newEmail,
           newPassword: params.newPassword,
+          currentPassword: params.currentPassword,
         }),
       });
       const json = await res.json();

@@ -420,7 +420,7 @@ export const AdminSeoAndSettingsManager: React.FC = () => {
                     value={form.defaultSeoTitle}
                     onChange={(e) => setForm({ ...form, defaultSeoTitle: e.target.value })}
                     className="w-full px-3 py-2 bg-[#080808] border border-[#262626] text-xs text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
-                    placeholder="Gunjan Shrestha — Technology, Design & Business"
+                    placeholder="Site Title (e.g. Portfolio — Discipline & Focus)"
                   />
                 </div>
 
@@ -435,7 +435,7 @@ export const AdminSeoAndSettingsManager: React.FC = () => {
                     value={form.canonicalUrl}
                     onChange={(e) => setForm({ ...form, canonicalUrl: e.target.value })}
                     className="w-full px-3 py-2 bg-[#080808] border border-[#262626] text-xs text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
-                    placeholder="https://gunjan.dev"
+                    placeholder="https://example.com"
                   />
                   <p className="text-[11px] font-mono text-[#666666] mt-1">
                     Search engines use this definitive URL to avoid duplicate content penalties.
@@ -464,7 +464,7 @@ export const AdminSeoAndSettingsManager: React.FC = () => {
                     value={form.siteDescription}
                     onChange={(e) => setForm({ ...form, siteDescription: e.target.value, defaultSeoDescription: e.target.value })}
                     className="w-full px-3 py-2 bg-[#080808] border border-[#262626] text-xs text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d] leading-relaxed"
-                    placeholder="Personal digital identity platform and professional profile of Gunjan Shrestha..."
+                    placeholder="Brief description of your portfolio and background..."
                   />
                 </div>
 
@@ -478,7 +478,7 @@ export const AdminSeoAndSettingsManager: React.FC = () => {
                     value={form.seoKeywords}
                     onChange={(e) => setForm({ ...form, seoKeywords: e.target.value })}
                     className="w-full px-3 py-2 bg-[#080808] border border-[#262626] text-xs text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
-                    placeholder="Gunjan Shrestha, Technology, Systems Architecture, Design Systems, Nepal"
+                    placeholder="Keywords (e.g. Technology, Architecture, Design)"
                   />
                 </div>
 

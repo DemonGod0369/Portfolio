@@ -21,6 +21,7 @@ type AuthViewMode = 'login' | 'forgot_email' | 'forgot_code' | 'success';
 
 export const AdminLogin: React.FC = () => {
   const { 
+    siteSettings,
     adminLogin, 
     setCurrentRoute, 
     requestPasswordReset, 
@@ -29,6 +30,7 @@ export const AdminLogin: React.FC = () => {
 
   // Mode management
   const [mode, setMode] = useState<AuthViewMode>('login');
+  const [logoLoadError, setLogoLoadError] = useState(false);
 
   // Login form state
   const [email, setEmail] = useState('');
@@ -80,14 +82,12 @@ export const AdminLogin: React.FC = () => {
     setLoading(false);
 
     if (res.success) {
-      if (res.recoveryCode) {
-        setGeneratedCodePreview(res.recoveryCode);
-        setRecoveryCode(res.recoveryCode); // Pre-fill convenience for seamless verification
-      }
+      setRecoveryCode(''); // Security: Must be entered from email
+      setGeneratedCodePreview(null);
       if (res.expiresAt) {
         setExpiresAtPreview(res.expiresAt);
       }
-      setSuccessInfo(res.message || 'One-time recovery code generated.');
+      setSuccessInfo(res.message || 'A 6-digit recovery code has been dispatched to your email address.');
       setMode('forgot_code');
     } else {
       setError(res.message || 'No registered administrator account found with that email.');
@@ -141,10 +141,10 @@ export const AdminLogin: React.FC = () => {
     setLoading(true);
     const res = await requestPasswordReset(email);
     setLoading(false);
-    if (res.success && res.recoveryCode) {
-      setGeneratedCodePreview(res.recoveryCode);
-      setRecoveryCode(res.recoveryCode);
-      setSuccessInfo('A new recovery code has been generated.');
+    if (res.success) {
+      setRecoveryCode('');
+      setGeneratedCodePreview(null);
+      setSuccessInfo('A new recovery code has been dispatched to your email address.');
     } else {
       setError(res.message || 'Failed to resend code.');
     }
@@ -163,9 +163,22 @@ export const AdminLogin: React.FC = () => {
         {mode === 'login' && (
           <>
             <div className="text-center space-y-3">
-              <div className="w-12 h-12 bg-[#171717] border border-[#262626] rounded-full flex items-center justify-center mx-auto text-[#c6a87d] shadow-inner">
-                <Shield className="w-6 h-6" />
-              </div>
+              {/* Site Logo Display above Title */}
+              {siteSettings?.logoUrl && siteSettings.logoUrl.trim() !== '' && !logoLoadError ? (
+                <div className="flex flex-col items-center justify-center mx-auto mb-1">
+                  <img
+                    src={siteSettings.logoUrl}
+                    alt={siteSettings.siteName || 'Site Logo'}
+                    onError={() => setLogoLoadError(true)}
+                    className="h-14 w-auto max-w-[220px] object-contain rounded-sm border border-[#262626] p-1.5 bg-[#141414] shadow-md transition-all hover:border-[#c6a87d]/50"
+                  />
+                </div>
+              ) : (
+                <div className="w-12 h-12 bg-[#171717] border border-[#262626] rounded-full flex items-center justify-center mx-auto text-[#c6a87d] shadow-inner">
+                  <Shield className="w-6 h-6" />
+                </div>
+              )}
+
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-[#F5F5F5] uppercase">
                   Private CMS Portal
@@ -194,7 +207,7 @@ export const AdminLogin: React.FC = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="admin@example.com"
+                    placeholder="Email"
                     className="w-full px-4 py-3 bg-[#080808] border border-[#262626] focus:border-[#c6a87d] text-[#F5F5F5] placeholder-[#444444] rounded-sm text-sm focus:outline-none transition-colors"
                   />
                   <Mail className="w-4 h-4 text-[#666666] absolute right-3.5 top-3.5" />
@@ -225,7 +238,7 @@ export const AdminLogin: React.FC = () => {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••••••"
+                    placeholder="Password"
                     className="w-full pl-4 pr-10 py-3 bg-[#080808] border border-[#262626] focus:border-[#c6a87d] text-[#F5F5F5] placeholder-[#444444] rounded-sm text-sm focus:outline-none transition-colors"
                   />
                   <button
@@ -312,7 +325,7 @@ export const AdminLogin: React.FC = () => {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="gunjanstha01@gmail.com"
+                    placeholder="Email"
                     className="w-full px-4 py-3 bg-[#080808] border border-[#262626] focus:border-[#c6a87d] text-[#F5F5F5] placeholder-[#444444] rounded-sm text-sm focus:outline-none transition-colors"
                   />
                   <Mail className="w-4 h-4 text-[#666666] absolute right-3.5 top-3.5" />
@@ -327,11 +340,11 @@ export const AdminLogin: React.FC = () => {
                 {loading ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Generating Recovery Code...</span>
+                    <span>Sending Recovery Code...</span>
                   </>
                 ) : (
                   <>
-                    <span>Generate Recovery Code</span>
+                    <span>Send Recovery Code</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -373,44 +386,23 @@ export const AdminLogin: React.FC = () => {
               </div>
             </div>
 
-            {/* Generated Code Security Display Callout */}
-            {generatedCodePreview && (
-              <div className="bg-[#141414] border border-[#c6a87d]/40 rounded-sm p-4 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-[#c6a87d] font-bold flex items-center gap-1.5">
-                    <Clock className="w-3 h-3" />
-                    One-Time Recovery Code (Valid 15m)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={handleCopyCode}
-                    className="text-[10px] font-mono text-[#c6a87d] hover:text-[#e5ca9e] flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    {copiedCode ? (
-                      <>
-                        <Check className="w-3 h-3 text-emerald-400" />
-                        <span className="text-emerald-400">Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="w-3 h-3" />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div className="text-center py-2 bg-[#0a0a0a] border border-[#222222] rounded-sm">
-                  <span className="font-mono text-xl sm:text-2xl font-bold tracking-[0.3em] text-[#F5F5F5]">
-                    {generatedCodePreview}
-                  </span>
-                </div>
-                <p className="text-[10px] font-mono text-[#777777] text-center leading-snug">
-                  Recovery token stored in PostgreSQL & logged to the Audit system.
+            {/* Email Dispatch Notice (Recovery code is kept private in email inbox) */}
+            <div className="p-4 bg-[#141414] border border-[#2a2a2a] rounded-sm text-xs font-mono text-[#999999] leading-relaxed flex items-start gap-3">
+              <Mail className="w-4 h-4 text-[#c6a87d] shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="text-[#c6a87d] font-bold block uppercase tracking-wider text-[11px]">
+                  Verification Code Dispatched
+                </span>
+                <p className="text-[#e5e5e5] text-xs">
+                  A 6-digit one-time recovery code has been sent directly to your registered administrator email address.
+                </p>
+                <p className="text-[#777777] text-[11px]">
+                  Please check your inbox (and spam/junk folder) and enter the code below to reset your password.
                 </p>
               </div>
-            )}
+            </div>
 
-            {successInfo && !generatedCodePreview && (
+            {successInfo && (
               <div className="p-3 bg-emerald-950/40 border border-emerald-800 text-emerald-300 text-xs font-mono rounded-sm flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span>{successInfo}</span>
@@ -435,7 +427,7 @@ export const AdminLogin: React.FC = () => {
                   maxLength={6}
                   value={recoveryCode}
                   onChange={(e) => setRecoveryCode(e.target.value.replace(/[^0-9]/g, ''))}
-                  placeholder="123456"
+                  placeholder="Number"
                   className="w-full px-4 py-3 bg-[#080808] border border-[#262626] focus:border-[#c6a87d] text-[#F5F5F5] placeholder-[#444444] rounded-sm text-sm font-mono tracking-widest text-center focus:outline-none transition-colors"
                 />
               </div>
@@ -451,7 +443,7 @@ export const AdminLogin: React.FC = () => {
                     minLength={6}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter new password"
+                    placeholder="New Password"
                     className="w-full pl-4 pr-10 py-3 bg-[#080808] border border-[#262626] focus:border-[#c6a87d] text-[#F5F5F5] placeholder-[#444444] rounded-sm text-sm focus:outline-none transition-colors"
                   />
                   <button
@@ -474,7 +466,7 @@ export const AdminLogin: React.FC = () => {
                   minLength={6}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Repeat new password"
+                  placeholder="Confirm New Password"
                   className="w-full px-4 py-3 bg-[#080808] border border-[#262626] focus:border-[#c6a87d] text-[#F5F5F5] placeholder-[#444444] rounded-sm text-sm focus:outline-none transition-colors"
                 />
               </div>

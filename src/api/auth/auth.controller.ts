@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import * as queries from '../../db/queries.ts';
 import { createAuthToken } from '../common/utils/token.utils.ts';
 import { AuthenticatedRequest } from '../common/middleware/auth.middleware.ts';
+import { sendRecoveryEmail, maskEmail } from '../common/utils/email.utils.ts';
 
 const COOKIE_NAME = 'auth_token';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -83,14 +84,36 @@ export async function logout(req: Request, res: Response) {
 
 export async function updateCredentials(req: AuthenticatedRequest, res: Response) {
   try {
-    const { email, newPassword } = req.body;
-    if (!email) {
-      return res.status(400).json({ success: false, error: 'Email is required' });
+    const { currentEmail, email, newEmail, currentPassword, newPassword } = req.body;
+    
+    // Determine current administrator email from session or payload
+    const fromEmail = currentEmail || req.user?.email;
+    const targetEmail = (newEmail || email || fromEmail)?.trim().toLowerCase();
+
+    if (!targetEmail) {
+      return res.status(400).json({ success: false, error: 'Administrator email is required' });
     }
 
-    const result = await queries.updateAdminCredentials(email, newPassword);
+    // Verify current password if provided
+    if (currentPassword && fromEmail) {
+      const verification = await queries.verifyAdminLogin(fromEmail, currentPassword);
+      if (!verification.success) {
+        return res.status(401).json({ success: false, error: 'Current password verification failed. Please check your current password.' });
+      }
+    }
 
-    const token = createAuthToken(email, 'admin');
+    // Update credentials with explicit parameter separation: (currentEmail, newEmail, newPassword)
+    const result = await queries.updateAdminCredentials(
+      fromEmail || targetEmail,
+      targetEmail !== fromEmail ? targetEmail : undefined,
+      newPassword && newPassword.trim() ? newPassword.trim() : undefined
+    );
+
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error || 'Failed to update credentials' });
+    }
+
+    const token = createAuthToken(targetEmail, 'admin');
     res.cookie(COOKIE_NAME, token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -102,10 +125,14 @@ export async function updateCredentials(req: AuthenticatedRequest, res: Response
     await queries.createAuditEntry({
       action: 'ADMIN_CREDENTIALS_UPDATED',
       entityType: 'User',
-      entityId: email,
+      entityId: targetEmail,
+      metadata: {
+        emailUpdated: fromEmail !== targetEmail,
+        passwordUpdated: Boolean(newPassword),
+      },
     });
 
-    res.json({ success: true, data: result });
+    res.json({ success: true, data: result.user });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message || 'Failed to update credentials' });
   }
@@ -155,17 +182,19 @@ export async function forgotPassword(req: Request, res: Response) {
     }
 
     const result = await queries.generatePasswordResetToken(email);
-    if (!result.success) {
+    if (!result.success || !result.code) {
       return res.status(404).json({ success: false, error: result.error || 'Account not found.' });
     }
 
+    // Send code strictly to the registered administrator email inbox
+    await sendRecoveryEmail(result.email, result.code);
+
+    // SECURITY: The recovery code is NEVER sent to the client screen
     res.json({
       success: true,
-      message: result.message,
-      email: result.email,
+      message: `A 6-digit recovery code has been dispatched to your registered administrator email address (${maskEmail(result.email)}). Please check your email inbox to proceed.`,
+      email: maskEmail(result.email),
       expiresAt: result.expiresAt,
-      // Provide recovery code directly in payload for development and preview environments
-      recoveryCode: result.code,
     });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message || 'Failed to process forgot password request.' });

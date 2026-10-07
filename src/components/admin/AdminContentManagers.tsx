@@ -179,7 +179,7 @@ export const AdminExperienceManager: React.FC = () => {
                 type="text"
                 value={form.startDate}
                 onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-                placeholder="2022"
+                placeholder="Year"
                 className="w-full px-3 py-2 bg-[#080808] border border-[#262626] text-xs text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
               />
             </div>
@@ -191,7 +191,7 @@ export const AdminExperienceManager: React.FC = () => {
                 disabled={form.isCurrent}
                 value={form.endDate}
                 onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-                placeholder="2024"
+                placeholder="Year"
                 className="w-full px-3 py-2 bg-[#080808] border border-[#262626] text-xs text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d] disabled:opacity-40"
               />
             </div>

@@ -476,7 +476,7 @@ export const AdminCaseStudyEditorPanel: React.FC<CaseStudyEditorProps> = ({
                   type="text"
                   value={form.seoTitle}
                   onChange={(e) => handleFieldChange('seoTitle', e.target.value)}
-                  placeholder={`${form.title || 'Case Study Title'} | Gunjan Shrestha`}
+                  placeholder={`${form.title || 'Case Study Title'} | Portfolio Title`}
                   className="w-full px-3.5 py-2.5 bg-[#080808] border border-[#262626] text-xs text-[#F5F5F5] rounded-sm focus:outline-none focus:border-[#c6a87d]"
                 />
               </div>

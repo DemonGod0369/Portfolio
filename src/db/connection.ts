@@ -12,29 +12,39 @@ declare global {
  * Supports standard connection strings as well as Google Cloud SQL Unix domain sockets.
  */
 export function getDatabaseUrl(): string {
-  if (process.env.DATABASE_URL) {
-    return process.env.DATABASE_URL;
-  }
-
   const host = process.env.SQL_HOST;
   const user = process.env.SQL_USER || 'ai_studio_app_user';
   const password = process.env.SQL_PASSWORD || '';
   const db = process.env.SQL_DB_NAME || 'cloud_sql_development_database';
   const port = process.env.SQL_PORT || 5432;
 
-  if (host && host.startsWith('/')) {
-    return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@localhost/${encodeURIComponent(db)}?host=${encodeURIComponent(host)}`;
+  let url: string;
+  if (process.env.DATABASE_URL) {
+    url = process.env.DATABASE_URL;
+  } else if (host && host.startsWith('/')) {
+    url = `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@localhost/${encodeURIComponent(db)}?host=${encodeURIComponent(host)}`;
   } else if (host) {
-    return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(db)}`;
+    url = `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(db)}`;
+  } else {
+    url = 'postgresql://postgres:postgres@127.0.0.1:5432/postgres';
   }
 
-  return 'postgresql://postgres:postgres@127.0.0.1:5432/postgres';
+  // Ensure production connection timeouts for Cloud SQL scale-to-zero recovery
+  if (!url.includes('connect_timeout=')) {
+    url += (url.includes('?') ? '&' : '?') + 'connect_timeout=30';
+  }
+  if (!url.includes('pool_timeout=')) {
+    url += '&pool_timeout=30';
+  }
+  if (!url.includes('connection_limit=')) {
+    url += '&connection_limit=15';
+  }
+
+  return url;
 }
 
 // Synchronize environment variable for Prisma
-if (!process.env.DATABASE_URL) {
-  process.env.DATABASE_URL = getDatabaseUrl();
-}
+process.env.DATABASE_URL = getDatabaseUrl();
 
 /**
  * Creates or retrieves the singleton pg Pool connection.

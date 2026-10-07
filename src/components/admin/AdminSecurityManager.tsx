@@ -535,7 +535,7 @@ export const AdminSecurityManager: React.FC = () => {
                   required
                   value={newEmail}
                   onChange={e => setNewEmail(e.target.value)}
-                  placeholder="gunjanstha01@gmail.com"
+                  placeholder="Email"
                   className="w-full px-4 py-2.5 bg-[#080808] border border-[#262626] focus:border-[#c6a87d] text-[#F5F5F5] text-xs font-mono rounded-sm focus:outline-none transition-colors"
                 />
                 <Mail className="w-4 h-4 text-[#666666] absolute right-3 top-3" />
@@ -566,13 +566,13 @@ export const AdminSecurityManager: React.FC = () => {
                   required
                   value={currentPassword}
                   onChange={e => setCurrentPassword(e.target.value)}
-                  placeholder="Enter current password..."
+                  placeholder="Current password"
                   className="w-full px-4 py-2.5 bg-[#080808] border border-[#333333] focus:border-[#c6a87d] text-[#F5F5F5] text-xs font-mono rounded-sm focus:outline-none transition-colors"
                 />
                 <Lock className="w-4 h-4 text-[#c6a87d] absolute right-3 top-3" />
               </div>
               <p className="text-[11px] font-mono text-[#808080]">
-                Demo Default: <span className="text-[#c6a87d]">gunjan2026</span>
+                Required to verify identity and authorize changes.
               </p>
             </div>
 
@@ -586,7 +586,7 @@ export const AdminSecurityManager: React.FC = () => {
                   type={showPasswords ? 'text' : 'password'}
                   value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
-                  placeholder="Leave blank to keep existing password"
+                  placeholder="New password"
                   className="w-full px-4 py-2.5 bg-[#080808] border border-[#262626] focus:border-[#c6a87d] text-[#F5F5F5] text-xs font-mono rounded-sm focus:outline-none transition-colors"
                 />
                 <Lock className="w-4 h-4 text-[#666666] absolute right-3 top-3" />
@@ -607,7 +607,7 @@ export const AdminSecurityManager: React.FC = () => {
                   disabled={!newPassword}
                   value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter new password"
+                  placeholder="Confirm new password"
                   className="w-full px-4 py-2.5 bg-[#080808] border border-[#262626] focus:border-[#c6a87d] text-[#F5F5F5] text-xs font-mono rounded-sm focus:outline-none transition-colors disabled:opacity-40"
                 />
                 <Lock className="w-4 h-4 text-[#666666] absolute right-3 top-3" />

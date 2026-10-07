@@ -7,6 +7,7 @@ import { securityHeaders, sanitizeInput } from '../src/api/common/middleware/sec
 import { authenticateToken } from '../src/api/common/middleware/auth.middleware.ts';
 import { errorHandler } from '../src/api/common/errors/errorHandler.ts';
 import { createAuthToken } from '../src/api/common/utils/token.utils.ts';
+import * as queries from '../src/db/queries.ts';
 
 let server: http.Server;
 let baseUrl: string;
@@ -105,7 +106,7 @@ describe('Modular API Endpoints & Professional Backend Suite', () => {
     });
 
     let recoveryCode = '';
-    it('POST /api/auth/forgot-password: generates 6-digit code for registered administrator', async () => {
+    it('POST /api/auth/forgot-password: generates 6-digit code for registered administrator without exposing it in payload', async () => {
       const res = await fetch(`${baseUrl}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -114,9 +115,10 @@ describe('Modular API Endpoints & Professional Backend Suite', () => {
       expect(res.status).toBe(200);
       const json = await res.json();
       expect(json.success).toBe(true);
-      expect(json.recoveryCode).toBeDefined();
-      expect(json.recoveryCode.length).toBe(6);
-      recoveryCode = json.recoveryCode;
+      // Security: verify recoveryCode is NOT exposed on response payload
+      expect(json.recoveryCode).toBeUndefined();
+      recoveryCode = queries.getLatestResetCode('gunjanstha01@gmail.com') || '';
+      expect(recoveryCode.length).toBe(6);
     });
 
     it('POST /api/auth/verify-reset-code: rejects invalid code', async () => {
@@ -167,18 +169,18 @@ describe('Modular API Endpoints & Professional Backend Suite', () => {
       expect(loginRes.status).toBe(200);
 
       // Restore password back to gunjan2026 for following tests
-      const forgotRes = await fetch(`${baseUrl}/api/auth/forgot-password`, {
+      await fetch(`${baseUrl}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: 'gunjanstha01@gmail.com' }),
       });
-      const forgotJson = await forgotRes.json();
+      const restoreCode = queries.getLatestResetCode('gunjanstha01@gmail.com');
       await fetch(`${baseUrl}/api/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: 'gunjanstha01@gmail.com',
-          code: forgotJson.recoveryCode,
+          code: restoreCode,
           newPassword: 'gunjan2026',
         }),
       });

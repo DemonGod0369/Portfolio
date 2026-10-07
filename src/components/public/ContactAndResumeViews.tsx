@@ -255,7 +255,7 @@ export const ContactView: React.FC = () => {
                       maxLength={100}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="e.g. Aarav Sharma"
+                      placeholder="Name"
                       className="w-full px-4 py-3 bg-[#050814] border border-[#1E293B] focus:border-[#00E5FF] text-[#F8FAFC] placeholder-[#475569] rounded-md text-sm focus:outline-none transition-colors"
                     />
                   </div>
@@ -271,7 +271,7 @@ export const ContactView: React.FC = () => {
                       maxLength={254}
                       value={formData.email}
                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="name@example.com"
+                      placeholder="Email"
                       className="w-full px-4 py-3 bg-[#050814] border border-[#1E293B] focus:border-[#00E5FF] text-[#F8FAFC] placeholder-[#475569] rounded-md text-sm focus:outline-none transition-colors"
                     />
                   </div>

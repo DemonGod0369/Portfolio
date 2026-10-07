@@ -39,16 +39,26 @@ export async function createAuditEntry(data: {
 }
 
 export async function verifyAdminLogin(email: string, passwordAttempt: string) {
+  const normalizedEmail = email?.trim().toLowerCase();
+  if (!normalizedEmail || !passwordAttempt) {
+    return { success: false, message: 'Email and password are required.', error: 'Invalid credentials' };
+  }
+
   const user = await prisma.user.findFirst({
-    where: { email },
+    where: {
+      email: { equals: normalizedEmail, mode: 'insensitive' },
+      isActive: true,
+    },
   });
 
   if (!user) {
-    if (email === 'gunjanstha01@gmail.com' && passwordAttempt === 'gunjan2026') {
+    // Only provision default administrator if table is completely empty
+    const userCount = await prisma.user.count();
+    if (userCount === 0 && normalizedEmail === 'gunjanstha01@gmail.com' && passwordAttempt === 'gunjan2026') {
       const created = await prisma.user.create({
         data: {
           uid: 'admin_gunjan',
-          email,
+          email: 'gunjanstha01@gmail.com',
           passwordHash: 'gunjan2026',
           isActive: true,
           lastLoginAt: new Date(),
@@ -56,7 +66,7 @@ export async function verifyAdminLogin(email: string, passwordAttempt: string) {
       });
       return { success: true, email: created.email, message: 'Authentication successful', user: created };
     }
-    return { success: false, message: 'User not found.', error: 'User not found.' };
+    return { success: false, message: 'Invalid email or password.', error: 'Invalid credentials' };
   }
 
   if (user.passwordHash && user.passwordHash === passwordAttempt) {
@@ -71,17 +81,29 @@ export async function verifyAdminLogin(email: string, passwordAttempt: string) {
 }
 
 export async function updateAdminCredentials(currentEmail: string, newEmail?: string, newPassword?: string) {
-  const user = await prisma.user.findFirst({
-    where: { email: currentEmail },
+  const normalizedCurrent = currentEmail?.trim().toLowerCase();
+  let user = await prisma.user.findFirst({
+    where: { email: { equals: normalizedCurrent, mode: 'insensitive' } },
   });
+
+  if (!user) {
+    user = await prisma.user.findFirst({
+      where: { isActive: true },
+      orderBy: { id: 'asc' },
+    });
+  }
 
   if (!user) {
     return { success: false, error: 'Admin account not found.' };
   }
 
   const updateData: Record<string, unknown> = { updatedAt: new Date() };
-  if (newEmail) updateData.email = newEmail;
-  if (newPassword) updateData.passwordHash = newPassword;
+  if (newEmail && newEmail.trim()) {
+    updateData.email = newEmail.trim().toLowerCase();
+  }
+  if (newPassword && newPassword.trim()) {
+    updateData.passwordHash = newPassword.trim();
+  }
 
   const updated = await prisma.user.update({
     where: { id: user.id },
@@ -107,9 +129,15 @@ const resetTokenCache = new Map<string, ResetTokenData>();
  */
 export async function generatePasswordResetToken(email: string) {
   const normalizedEmail = email.trim().toLowerCase();
-  const user = await prisma.user.findFirst({
-    where: { email: normalizedEmail },
+  let user = await prisma.user.findFirst({
+    where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
   });
+
+  if (!user) {
+    user = await prisma.user.findFirst({
+      where: { email: normalizedEmail },
+    });
+  }
 
   if (!user) {
     return {
@@ -198,9 +226,15 @@ export async function resetPasswordWithCode(email: string, code: string, newPass
     };
   }
 
-  const user = await prisma.user.findFirst({
-    where: { email: normalizedEmail },
+  let user = await prisma.user.findFirst({
+    where: { email: { equals: normalizedEmail, mode: 'insensitive' } },
   });
+
+  if (!user) {
+    user = await prisma.user.findFirst({
+      where: { email: normalizedEmail },
+    });
+  }
 
   if (!user) {
     return {
@@ -231,5 +265,17 @@ export async function resetPasswordWithCode(email: string, code: string, newPass
     success: true,
     message: 'Your administrator password has been reset successfully. You can now log in.',
   };
+}
+
+/**
+ * Retrieves the latest unexpired reset code for verification in automated tests or diagnostics.
+ */
+export function getLatestResetCode(email: string): string | undefined {
+  const normalizedEmail = email.trim().toLowerCase();
+  const token = resetTokenCache.get(normalizedEmail);
+  if (token && !token.used && token.expiresAt.getTime() > Date.now()) {
+    return token.code;
+  }
+  return undefined;
 }
 
