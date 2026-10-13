@@ -89,3 +89,16 @@ export async function deleteBlogPost(id: string | number) {
     publishedAt: deleted.publishedAt ? deleted.publishedAt.toISOString() : undefined,
   };
 }
+
+export async function getBlogCategories() {
+  const categories = await prisma.blogCategory.findMany({
+    orderBy: { name: 'asc' },
+    include: {
+      _count: {
+        select: { posts: true },
+      },
+    },
+  });
+  return categories.map(formatRow);
+}
+
