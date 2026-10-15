@@ -3,6 +3,7 @@ import * as queries from '../../db/queries.ts';
 import { createAuthToken } from '../common/utils/token.utils.ts';
 import { AuthenticatedRequest } from '../common/middleware/auth.middleware.ts';
 import { sendRecoveryEmail, maskEmail } from '../common/utils/email.utils.ts';
+import { sanitizeUser } from '../common/utils/password.utils.ts';
 
 const COOKIE_NAME = 'auth_token';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -43,6 +44,7 @@ export async function login(req: Request, res: Response) {
     res.json({
       success: true,
       message: 'Authentication successful',
+      token,
       user: {
         email: verification.email,
         role: 'Super Administrator',
@@ -132,7 +134,11 @@ export async function updateCredentials(req: AuthenticatedRequest, res: Response
       },
     });
 
-    res.json({ success: true, data: result.user });
+    res.json({
+      success: true,
+      token,
+      data: sanitizeUser(result.user),
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message || 'Failed to update credentials' });
   }

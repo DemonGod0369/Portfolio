@@ -469,6 +469,10 @@ describe('Comprehensive Final Test Case: Database Structure, Functions, and Full
       expect(typeof queries.updateAdminCredentials).toBe('function');
       expect(typeof queries.generatePasswordResetToken).toBe('function');
       expect(typeof queries.resetPasswordWithCode).toBe('function');
+      expect(typeof queries.hashPassword).toBe('function');
+      expect(typeof queries.comparePassword).toBe('function');
+      expect(typeof queries.validatePasswordStrength).toBe('function');
+      expect(typeof queries.isBcryptHash).toBe('function');
     });
   });
 });

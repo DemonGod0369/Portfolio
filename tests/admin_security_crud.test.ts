@@ -28,7 +28,7 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
     }
   });
 
-  it('1. Verifies initial administrator login with original credentials', async () => {
+  it('1. Verifies initial administrator login with original credentials and secure hash comparison', async () => {
     const loginRes = await queries.verifyAdminLogin(ORIGINAL_EMAIL, ORIGINAL_PASSWORD);
     expect(loginRes.success).toBe(true);
     expect(loginRes.email).toBe(ORIGINAL_EMAIL);
@@ -37,7 +37,7 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
     expect(wrongPass.success).toBe(false);
   });
 
-  it('2. Fixes email and password change: password does NOT become email', async () => {
+  it('2. Fixes email and password change: hashes password before storing and prevents field crossover', async () => {
     const demoEmail = 'testadmin_demo1@example.com';
     const demoPassword = 'superSecretPassword987!';
 
@@ -47,7 +47,10 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
     expect(updateRes.user?.email).toBe(demoEmail);
     // Explicitly verify the email column contains the EMAIL, not the password
     expect(updateRes.user?.email).not.toBe(demoPassword);
-    expect(updateRes.user?.passwordHash).toBe(demoPassword);
+    
+    // Explicitly verify the password is encrypted/hashed with bcrypt and NOT plaintext in the database
+    expect(updateRes.user?.passwordHash).not.toBe(demoPassword);
+    expect(queries.isBcryptHash(updateRes.user?.passwordHash ?? '')).toBe(true);
 
     // Verify database record directly via Prisma
     const dbUser = await prisma.user.findFirst({
@@ -55,7 +58,9 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
     });
     expect(dbUser).toBeDefined();
     expect(dbUser?.email).toBe(demoEmail);
-    expect(dbUser?.passwordHash).toBe(demoPassword);
+    expect(dbUser?.passwordHash).not.toBe(demoPassword);
+    expect(queries.isBcryptHash(dbUser?.passwordHash ?? '')).toBe(true);
+    expect(await queries.comparePassword(demoPassword, dbUser?.passwordHash ?? '')).toBe(true);
 
     // Verify login with new email and new password succeeds
     const verifySuccess = await queries.verifyAdminLogin(demoEmail, demoPassword);
@@ -69,7 +74,7 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
     await queries.updateAdminCredentials(demoEmail, ORIGINAL_EMAIL, ORIGINAL_PASSWORD);
   });
 
-  it('3. Performs multiple email and password change CRUD cycles', async () => {
+  it('3. Performs multiple email and password change CRUD cycles with bcrypt hashes', async () => {
     const testCases = [
       { email: 'alpha.admin@domain.org', password: 'AlphaPass2026_Secure' },
       { email: 'beta.operator@enterprise.co', password: 'BetaOperator#456!' },
@@ -83,13 +88,16 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
       const updateResult = await queries.updateAdminCredentials(currentEmail, testCase.email, testCase.password);
       expect(updateResult.success).toBe(true);
       expect(updateResult.user?.email).toBe(testCase.email);
-      expect(updateResult.user?.passwordHash).toBe(testCase.password);
+      expect(updateResult.user?.passwordHash).not.toBe(testCase.password);
+      expect(queries.isBcryptHash(updateResult.user?.passwordHash ?? '')).toBe(true);
 
       // VERIFY DB INTEGRITY
       const user = await prisma.user.findFirst({ where: { email: testCase.email } });
       expect(user).toBeDefined();
       expect(user?.email).toBe(testCase.email);
-      expect(user?.passwordHash).toBe(testCase.password);
+      expect(user?.passwordHash).not.toBe(testCase.password);
+      expect(queries.isBcryptHash(user?.passwordHash ?? '')).toBe(true);
+      expect(await queries.comparePassword(testCase.password, user?.passwordHash ?? '')).toBe(true);
 
       // AUTHENTICATE
       const login = await queries.verifyAdminLogin(testCase.email, testCase.password);
@@ -102,16 +110,16 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
     await queries.updateAdminCredentials(currentEmail, ORIGINAL_EMAIL, ORIGINAL_PASSWORD);
     const restored = await queries.verifyAdminLogin(ORIGINAL_EMAIL, ORIGINAL_PASSWORD);
     expect(restored.success).toBe(true);
-  });
+  }, 30000);
 
-  it('4. Forgot password flow: generates secure recovery token and resets password', async () => {
+  it('4. Forgot password flow: generates secure recovery token and resets password with bcrypt hash', async () => {
     // Generate recovery code
     const tokenRes = await queries.generatePasswordResetToken(ORIGINAL_EMAIL);
     expect(tokenRes.success).toBe(true);
     expect(tokenRes.code).toBeDefined();
     expect(tokenRes.code?.length).toBe(6);
 
-    const generatedCode = tokenRes.code!;
+    const generatedCode = tokenRes.code ?? '';
 
     // Test verifying wrong recovery code fails
     const invalidVerify = await queries.verifyPasswordResetCode(ORIGINAL_EMAIL, '000000');
@@ -126,19 +134,25 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
     const resetRes = await queries.resetPasswordWithCode(ORIGINAL_EMAIL, generatedCode, newResetPassword);
     expect(resetRes.success).toBe(true);
 
+    // Verify database record has secure hash
+    const resetUser = await prisma.user.findFirst({ where: { email: ORIGINAL_EMAIL } });
+    expect(resetUser?.passwordHash).not.toBe(newResetPassword);
+    expect(queries.isBcryptHash(resetUser?.passwordHash ?? '')).toBe(true);
+    expect(await queries.comparePassword(newResetPassword, resetUser?.passwordHash ?? '')).toBe(true);
+
     // Verify login with new recovered password
     const newLogin = await queries.verifyAdminLogin(ORIGINAL_EMAIL, newResetPassword);
     expect(newLogin.success).toBe(true);
 
     // Verify used token cannot be reused
-    const reuseAttempt = await queries.resetPasswordWithCode(ORIGINAL_EMAIL, generatedCode, 'anotherPass123');
+    const reuseAttempt = await queries.resetPasswordWithCode(ORIGINAL_EMAIL, generatedCode, 'anotherPass123!');
     expect(reuseAttempt.success).toBe(false);
 
     // Restore original password
     await queries.updateAdminCredentials(ORIGINAL_EMAIL, ORIGINAL_EMAIL, ORIGINAL_PASSWORD);
   });
 
-  it('5. Full CRUD operations with 5 demo credentials, verifying DB fields never cross-contaminate', async () => {
+  it('5. Full CRUD operations with 5 demo credentials, verifying password hashing and DB field integrity', async () => {
     const demoAccounts = [
       { email: 'demo_exec1@portfolio.internal', pass: 'DemoKey_Pass1#2026' },
       { email: 'demo_exec2@portfolio.internal', pass: 'SecondPass_9988$$' },
@@ -159,8 +173,9 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
       expect(user).toBeDefined();
       expect(user?.email).toBe(demo.email);
       expect(user?.email).not.toBe(demo.pass);
-      expect(user?.passwordHash).toBe(demo.pass);
+      expect(user?.passwordHash).not.toBe(demo.pass);
       expect(user?.passwordHash).not.toBe(demo.email);
+      expect(queries.isBcryptHash(user?.passwordHash ?? '')).toBe(true);
 
       // 3. AUTHENTICATE with new credentials
       const login = await queries.verifyAdminLogin(demo.email, demo.pass);
@@ -172,7 +187,8 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
       expect(passOnlyRes.success).toBe(true);
       const userAfterPass = await prisma.user.findFirst({ where: { email: demo.email } });
       expect(userAfterPass?.email).toBe(demo.email);
-      expect(userAfterPass?.passwordHash).toBe(newOnlyPass);
+      expect(userAfterPass?.passwordHash).not.toBe(newOnlyPass);
+      expect(queries.isBcryptHash(userAfterPass?.passwordHash ?? '')).toBe(true);
 
       // Revert pass back for next iteration
       await queries.updateAdminCredentials(demo.email, undefined, demo.pass);
@@ -184,6 +200,6 @@ describe('Admin Security & Credential Management CRUD Suite', () => {
     await queries.updateAdminCredentials(activeEmail, ORIGINAL_EMAIL, ORIGINAL_PASSWORD);
     const finalAdmin = await prisma.user.findFirst({ where: { email: ORIGINAL_EMAIL } });
     expect(finalAdmin?.email).toBe(ORIGINAL_EMAIL);
-    expect(finalAdmin?.passwordHash).toBe(ORIGINAL_PASSWORD);
-  });
+    expect(queries.isBcryptHash(finalAdmin?.passwordHash ?? '')).toBe(true);
+  }, 30000);
 });

@@ -1,4 +1,4 @@
-import { prisma, createPool } from '../connection.ts';
+import { prisma, createPool, reconnectPrisma, resetPool } from '../connection.ts';
 import { formatRow } from './common.ts';
 import {
   Profile,
@@ -30,12 +30,75 @@ export interface PublicPortfolioData {
   siteSettings: SiteSetting | null;
 }
 
+// In-memory resilient cache for public portfolio data to serve during database cold-starts or socket wakeups
+let cachedPublicPortfolio: PublicPortfolioData | null = null;
+let _lastPublicPortfolioCacheTime = 0;
+
+export function invalidatePortfolioCache(): void {
+  cachedPublicPortfolio = null;
+  _lastPublicPortfolioCacheTime = 0;
+}
+
+/**
+ * Default fallback data structure ensures site remains available if database is initializing
+ */
+export function getFallbackPortfolioData(): PublicPortfolioData {
+  return {
+    profile: {
+      id: '1',
+      name: 'Gunjan Shrestha',
+      headline: 'Multidisciplinary Founder & Systems Operator',
+      shortBio: 'Founder, builder, and operator specializing in business operations, creative direction, and technological systems.',
+      longBio: 'Gunjan Shrestha is an entrepreneur and multidisciplinary operator with over 8 years of cross-industry leadership spanning creative direction, scalable digital operations, and strategic brand management.',
+      profileImageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
+      email: 'gunjanstha01@gmail.com',
+      location: 'Kathmandu, Nepal',
+      website: 'https://www.gunjanshrestha.com.np',
+      phoneDisplayOption: 'both',
+      whatsappNumber: 'primary',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    experiences: [],
+    educations: [],
+    skillCategories: [],
+    skills: [],
+    services: [],
+    projects: [],
+    galleryImages: [],
+    blogPosts: [],
+    contentCategories: [],
+    socialLinks: [],
+    siteSettings: {
+      id: '1',
+      siteName: 'Gunjan Shrestha',
+      siteDescription: 'Multidisciplinary Founder & Systems Operator',
+      canonicalUrl: 'https://www.gunjanshrestha.com.np',
+      logoUrl: '',
+      faviconUrl: '',
+      profileImageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
+      email: 'gunjanstha01@gmail.com',
+      location: 'Kathmandu, Nepal',
+      footerText: 'Gunjan Shrestha. All Rights Reserved.',
+      accentColor: '#c6a87d',
+      maintenanceMode: false,
+      analyticsEnabled: false,
+      defaultSeoTitle: 'Gunjan Shrestha | Founder & Systems Operator',
+      defaultSeoDescription: 'Official portfolio and executive platform for Gunjan Shrestha.',
+      defaultOgImageUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
+      allowIndexing: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  };
+}
+
 /**
  * Resilient Retry Utility
  * Retries asynchronous database operations with exponential backoff
  * to handle transient Cloud SQL socket initialization during scale-to-zero wake-ups.
  */
-async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 500): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, retries = 4, delayMs = 800): Promise<T> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
@@ -43,9 +106,28 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 500): P
     } catch (err: unknown) {
       lastError = err;
       const errMsg = (err as Error)?.message || String(err);
+      const isConnectionError =
+        errMsg.includes('Closed') ||
+        errMsg.includes('EPIPE') ||
+        errMsg.includes('ECONNRESET') ||
+        errMsg.includes('ECONNREFUSED') ||
+        errMsg.includes('connection') ||
+        errMsg.includes('Connection') ||
+        errMsg.includes('socket') ||
+        errMsg.includes('timeout') ||
+        errMsg.includes('Engine');
+
       if (attempt < retries) {
-        console.warn(`[Database Retry] Attempt ${attempt}/${retries} failed (${errMsg}). Retrying in ${delayMs * attempt}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+        const backoffDelay = delayMs * attempt;
+        console.warn(`[Database Retry] Attempt ${attempt}/${retries} failed (${errMsg}). Retrying in ${backoffDelay}ms...`);
+        if (isConnectionError) {
+          try {
+            await reconnectPrisma();
+          } catch {
+            // Discard reconnect errors
+          }
+        }
+        await new Promise((resolve) => setTimeout(resolve, backoffDelay));
       }
     }
   }
@@ -70,36 +152,46 @@ function toCamelCaseRow<T>(row: Record<string, unknown>): T {
  * Invoked if Prisma query engine encounters a temporary socket reconnection hiccup
  */
 async function getPublicPortfolioDataDirectPg(): Promise<PublicPortfolioData> {
-  const pool = createPool();
-  const [
-    profileRes,
-    expRes,
-    eduRes,
-    skillCatRes,
-    skillRes,
-    serviceRes,
-    projRes,
-    projImgRes,
-    galRes,
-    blogRes,
-    catRes,
-    socialRes,
-    setRes,
-  ] = await Promise.all([
-    pool.query('SELECT * FROM profiles ORDER BY id ASC LIMIT 1'),
-    pool.query('SELECT * FROM experiences WHERE published = true ORDER BY display_order ASC'),
-    pool.query('SELECT * FROM educations WHERE published = true ORDER BY display_order ASC'),
-    pool.query('SELECT * FROM skill_categories WHERE published = true ORDER BY display_order ASC'),
-    pool.query('SELECT * FROM skills WHERE published = true ORDER BY display_order ASC'),
-    pool.query('SELECT * FROM services WHERE published = true ORDER BY display_order ASC'),
-    pool.query('SELECT * FROM projects WHERE published = true ORDER BY display_order ASC'),
-    pool.query('SELECT * FROM project_images ORDER BY display_order ASC'),
-    pool.query('SELECT * FROM gallery_images WHERE published = true ORDER BY display_order ASC'),
-    pool.query("SELECT * FROM blog_posts WHERE status = 'PUBLISHED' ORDER BY published_at DESC"),
-    pool.query('SELECT * FROM content_categories ORDER BY display_order ASC'),
-    pool.query('SELECT * FROM social_links WHERE published = true ORDER BY display_order ASC'),
-    pool.query('SELECT * FROM site_settings ORDER BY id ASC LIMIT 1'),
-  ]);
+  await resetPool();
+  const pool = createPool(true);
+  let client;
+  try {
+    client = await pool.connect();
+  } catch (err) {
+    console.warn('[Database Resiliency] Direct pg checkout failed, recreating fresh pool:', (err as Error)?.message);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    await resetPool();
+    const freshPool = createPool(true);
+    client = await freshPool.connect();
+  }
+
+  let profileRes, expRes, eduRes, skillCatRes, skillRes, serviceRes;
+  let projRes, projImgRes, galRes, blogRes, catRes, socialRes, setRes;
+
+  try {
+    // Execute sequentially on single client connection to prevent EPIPE write errors
+    profileRes = await client.query('SELECT * FROM profiles ORDER BY id ASC LIMIT 1');
+    expRes = await client.query('SELECT * FROM experiences WHERE published = true ORDER BY display_order ASC');
+    eduRes = await client.query('SELECT * FROM educations WHERE published = true ORDER BY display_order ASC');
+    skillCatRes = await client.query('SELECT * FROM skill_categories WHERE published = true ORDER BY display_order ASC');
+    skillRes = await client.query('SELECT * FROM skills WHERE published = true ORDER BY display_order ASC');
+    serviceRes = await client.query('SELECT * FROM services WHERE published = true ORDER BY display_order ASC');
+    projRes = await client.query('SELECT * FROM projects WHERE published = true ORDER BY display_order ASC');
+    projImgRes = await client.query('SELECT * FROM project_images ORDER BY display_order ASC');
+    galRes = await client.query('SELECT * FROM gallery_images WHERE published = true ORDER BY display_order ASC');
+    blogRes = await client.query("SELECT * FROM blog_posts WHERE status = 'PUBLISHED' ORDER BY published_at DESC");
+    catRes = await client.query('SELECT * FROM content_categories ORDER BY display_order ASC');
+    socialRes = await client.query('SELECT * FROM social_links WHERE published = true ORDER BY display_order ASC');
+    setRes = await client.query('SELECT * FROM site_settings ORDER BY id ASC LIMIT 1');
+  } finally {
+    if (client) {
+      try {
+        client.release();
+      } catch {
+        // Discard release errors
+      }
+    }
+  }
 
   const imagesByProject = new Map<number, unknown[]>();
   for (const img of projImgRes.rows) {
@@ -149,74 +241,60 @@ async function getPublicPortfolioDataDirectPg(): Promise<PublicPortfolioData> {
 export async function getPublicPortfolioData(): Promise<PublicPortfolioData> {
   try {
     return await withRetry(async () => {
-      const [
-        profile,
-        experiences,
-        educations,
-        skillCategories,
-        skills,
-        services,
-        projects,
-        galleryImages,
-        blogPosts,
-        contentCategories,
-        socialLinks,
-        siteSettings,
-      ] = await Promise.all([
-        prisma.profile.findFirst(),
-        prisma.experience.findMany({
-          where: { published: true },
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.education.findMany({
-          where: { published: true },
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.skillCategory.findMany({
-          where: { published: true },
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.skill.findMany({
-          where: { published: true },
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.service.findMany({
-          where: { published: true },
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.project.findMany({
-          where: { published: true },
-          orderBy: { displayOrder: 'asc' },
-          include: {
-            images: {
-              orderBy: { displayOrder: 'asc' },
-            },
+      // Execute sequentially on single connection to prevent connection exhaustion and socket contention
+      const profile = await prisma.profile.findFirst();
+      const experiences = await prisma.experience.findMany({
+        where: { published: true },
+        orderBy: { displayOrder: 'asc' },
+      });
+      const educations = await prisma.education.findMany({
+        where: { published: true },
+        orderBy: { displayOrder: 'asc' },
+      });
+      const skillCategories = await prisma.skillCategory.findMany({
+        where: { published: true },
+        orderBy: { displayOrder: 'asc' },
+      });
+      const skills = await prisma.skill.findMany({
+        where: { published: true },
+        orderBy: { displayOrder: 'asc' },
+      });
+      const services = await prisma.service.findMany({
+        where: { published: true },
+        orderBy: { displayOrder: 'asc' },
+      });
+      const projects = await prisma.project.findMany({
+        where: { published: true },
+        orderBy: { displayOrder: 'asc' },
+        include: {
+          images: {
+            orderBy: { displayOrder: 'asc' },
           },
-        }),
-        prisma.galleryImage.findMany({
-          where: { published: true },
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.blogPost.findMany({
-          where: { status: 'PUBLISHED' },
-          orderBy: { publishedAt: 'desc' },
-        }),
-        prisma.contentCategory.findMany({
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.socialLink.findMany({
-          where: { published: true },
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.siteSetting.findFirst(),
-      ]);
+        },
+      });
+      const galleryImages = await prisma.galleryImage.findMany({
+        where: { published: true },
+        orderBy: { displayOrder: 'asc' },
+      });
+      const blogPosts = await prisma.blogPost.findMany({
+        where: { status: 'PUBLISHED' },
+        orderBy: { publishedAt: 'desc' },
+      });
+      const contentCategories = await prisma.contentCategory.findMany({
+        orderBy: { displayOrder: 'asc' },
+      });
+      const socialLinks = await prisma.socialLink.findMany({
+        where: { published: true },
+        orderBy: { displayOrder: 'asc' },
+      });
+      const siteSettings = await prisma.siteSetting.findFirst();
 
       const formattedProjects = projects.map(p => ({
         ...formatRow(p),
         images: p.images.map(formatRow),
       }));
 
-      return {
+      const result: PublicPortfolioData = {
         profile: profile ? (formatRow(profile) as unknown as Profile) : null,
         experiences: experiences.map(formatRow) as unknown as Experience[],
         educations: educations.map(formatRow) as unknown as Education[],
@@ -233,15 +311,27 @@ export async function getPublicPortfolioData(): Promise<PublicPortfolioData> {
         socialLinks: socialLinks.map(formatRow) as unknown as SocialLink[],
         siteSettings: siteSettings ? (formatRow(siteSettings) as unknown as SiteSetting) : null,
       };
+
+      cachedPublicPortfolio = result;
+      _lastPublicPortfolioCacheTime = Date.now();
+      return result;
     });
   } catch (error: unknown) {
     console.warn('[Database Resiliency] Prisma query error in getPublicPortfolioData:', (error as Error)?.message || error);
     try {
       console.log('[Database Resiliency] Executing direct node-postgres fallback...');
-      return await getPublicPortfolioDataDirectPg();
+      const directData = await getPublicPortfolioDataDirectPg();
+      cachedPublicPortfolio = directData;
+      _lastPublicPortfolioCacheTime = Date.now();
+      return directData;
     } catch (fallbackError: unknown) {
       console.error('[Database Resiliency] Direct pg fallback also failed:', (fallbackError as Error)?.message || fallbackError);
-      throw new Error('Failed to retrieve portfolio data from database.', { cause: fallbackError });
+      if (cachedPublicPortfolio) {
+        console.warn('[Database Resiliency] Serving in-memory cached public portfolio during temporary database recovery.');
+        return cachedPublicPortfolio;
+      }
+      console.warn('[Database Resiliency] Serving baseline portfolio fallback data during database startup.');
+      return getFallbackPortfolioData();
     }
   }
 }
@@ -249,75 +339,57 @@ export async function getPublicPortfolioData(): Promise<PublicPortfolioData> {
 export async function getAllAdminPortfolioData() {
   try {
     return await withRetry(async () => {
-      const [
-        profile,
-        experiences,
-        educations,
-        skillCategories,
-        skills,
-        services,
-        projects,
-        galleryImages,
-        blogPosts,
-        contentCategories,
-        socialLinks,
-        siteSettings,
-        contactMessages,
-        auditLogs,
-        adminSessions,
-        users,
-      ] = await Promise.all([
-        prisma.profile.findFirst(),
-        prisma.experience.findMany({
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.education.findMany({
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.skillCategory.findMany({
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.skill.findMany({
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.service.findMany({
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.project.findMany({
-          orderBy: { displayOrder: 'asc' },
-          include: {
-            images: {
-              orderBy: { displayOrder: 'asc' },
-            },
+      // Sequential fetching on single connection prevents Cloud SQL pool exhaustion
+      const profile = await prisma.profile.findFirst();
+      const experiences = await prisma.experience.findMany({
+        orderBy: { displayOrder: 'asc' },
+      });
+      const educations = await prisma.education.findMany({
+        orderBy: { displayOrder: 'asc' },
+      });
+      const skillCategories = await prisma.skillCategory.findMany({
+        orderBy: { displayOrder: 'asc' },
+      });
+      const skills = await prisma.skill.findMany({
+        orderBy: { displayOrder: 'asc' },
+      });
+      const services = await prisma.service.findMany({
+        orderBy: { displayOrder: 'asc' },
+      });
+      const projects = await prisma.project.findMany({
+        orderBy: { displayOrder: 'asc' },
+        include: {
+          images: {
+            orderBy: { displayOrder: 'asc' },
           },
-        }),
-        prisma.galleryImage.findMany({
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.blogPost.findMany({
-          orderBy: { publishedAt: 'desc' },
-        }),
-        prisma.contentCategory.findMany({
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.socialLink.findMany({
-          orderBy: { displayOrder: 'asc' },
-        }),
-        prisma.siteSetting.findFirst(),
-        prisma.contactMessage.findMany({
-          orderBy: { createdAt: 'desc' },
-        }),
-        prisma.auditLog.findMany({
-          orderBy: { createdAt: 'desc' },
-          take: 100,
-        }),
-        prisma.adminSession.findMany({
-          orderBy: { lastActiveAt: 'desc' },
-        }),
-        prisma.user.findMany({
-          take: 1,
-        }),
-      ]);
+        },
+      });
+      const galleryImages = await prisma.galleryImage.findMany({
+        orderBy: { displayOrder: 'asc' },
+      });
+      const blogPosts = await prisma.blogPost.findMany({
+        orderBy: { publishedAt: 'desc' },
+      });
+      const contentCategories = await prisma.contentCategory.findMany({
+        orderBy: { displayOrder: 'asc' },
+      });
+      const socialLinks = await prisma.socialLink.findMany({
+        orderBy: { displayOrder: 'asc' },
+      });
+      const siteSettings = await prisma.siteSetting.findFirst();
+      const contactMessages = await prisma.contactMessage.findMany({
+        orderBy: { createdAt: 'desc' },
+      });
+      const auditLogs = await prisma.auditLog.findMany({
+        orderBy: { createdAt: 'desc' },
+        take: 100,
+      });
+      const adminSessions = await prisma.adminSession.findMany({
+        orderBy: { lastActiveAt: 'desc' },
+      });
+      const users = await prisma.user.findMany({
+        take: 1,
+      });
 
       const formattedProjects = projects.map(p => ({
         ...formatRow(p),
@@ -356,5 +428,6 @@ export async function getAllAdminPortfolioData() {
 }
 
 export async function resetAndReseedDatabase() {
+  invalidatePortfolioCache();
   return { success: true, message: 'All portfolio data is queried and managed directly in PostgreSQL database.' };
 }

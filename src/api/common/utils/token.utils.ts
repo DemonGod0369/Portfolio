@@ -1,57 +1,92 @@
+import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
-const AUTH_SECRET = process.env.AUTH_SECRET || 'gunjan_shrestha_portfolio_secure_secret_2026';
-const TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const JWT_SECRET = process.env.JWT_SECRET || process.env.AUTH_SECRET || 'gunjan_shrestha_portfolio_secure_jwt_secret_2026';
+const TOKEN_EXPIRY = '7d';
 
 export interface TokenPayload {
   email: string;
   role: string;
-  iat: number;
-  exp: number;
+  iat?: number;
+  exp?: number;
+  [key: string]: any;
 }
 
-export function createAuthToken(email: string, role = 'admin'): string {
-  const iat = Date.now();
-  const exp = iat + TOKEN_MAX_AGE_MS;
-  const payload: TokenPayload = { email, role, iat, exp };
-  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  const signature = crypto
-    .createHmac('sha256', AUTH_SECRET)
-    .update(encodedPayload)
-    .digest('base64url');
+/**
+ * Generates an RFC 7519 compliant JSON Web Token (JWT) with HS256 algorithm.
+ */
+export function createAuthToken(email: string, role = 'admin', customClaims: Record<string, any> = {}): string {
+  const payload: TokenPayload = {
+    email,
+    role,
+    ...customClaims,
+  };
 
-  return `${encodedPayload}.${signature}`;
+  return jwt.sign(payload, JWT_SECRET, {
+    algorithm: 'HS256',
+    expiresIn: TOKEN_EXPIRY,
+  });
 }
 
+/**
+ * Alias for createAuthToken emphasizing JWT standard naming.
+ */
+export const createJwtToken = createAuthToken;
+
+/**
+ * Verifies and decodes a JSON Web Token.
+ * Also handles legacy 2-part HMAC tokens seamlessly during transition.
+ */
 export function verifyAuthToken(token: string): TokenPayload | null {
   if (!token || typeof token !== 'string') return null;
 
-  const parts = token.split('.');
-  if (parts.length !== 2) return null;
-
-  const [encodedPayload, providedSignature] = parts;
-
   try {
-    const expectedSignature = crypto
-      .createHmac('sha256', AUTH_SECRET)
-      .update(encodedPayload)
-      .digest('base64url');
+    const trimmed = token.trim();
 
-    const expectedBuf = Buffer.from(expectedSignature, 'utf8');
-    const providedBuf = Buffer.from(providedSignature, 'utf8');
-
-    if (expectedBuf.length !== providedBuf.length || !crypto.timingSafeEqual(expectedBuf, providedBuf)) {
-      return null;
+    // Standard 3-part RFC 7519 JWT
+    if (trimmed.split('.').length === 3) {
+      const decoded = jwt.verify(trimmed, JWT_SECRET) as TokenPayload;
+      return decoded;
     }
 
-    const payload: TokenPayload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+    // Fallback for legacy 2-part HMAC tokens during transition
+    const parts = trimmed.split('.');
+    if (parts.length === 2) {
+      const [encodedPayload, providedSignature] = parts;
+      const expectedSignature = crypto
+        .createHmac('sha256', JWT_SECRET)
+        .update(encodedPayload)
+        .digest('base64url');
 
-    if (Date.now() > payload.exp) {
-      return null;
+      const expectedBuf = Buffer.from(expectedSignature, 'utf8');
+      const providedBuf = Buffer.from(providedSignature, 'utf8');
+
+      if (expectedBuf.length === providedBuf.length && crypto.timingSafeEqual(expectedBuf, providedBuf)) {
+        const payload: TokenPayload = JSON.parse(Buffer.from(encodedPayload, 'base64url').toString('utf8'));
+        if (!payload.exp || Date.now() <= payload.exp) {
+          return payload;
+        }
+      }
     }
 
-    return payload;
+    return null;
   } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Alias for verifyAuthToken.
+ */
+export const verifyJwtToken = verifyAuthToken;
+
+/**
+ * Decodes a JWT token without verifying signature (useful for client inspection).
+ */
+export function decodeAuthToken(token: string): TokenPayload | null {
+  try {
+    return jwt.decode(token) as TokenPayload | null;
+  } catch {
     return null;
   }
 }

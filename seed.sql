@@ -1,9 +1,12 @@
 -- ==============================================================================
 -- Gunjan Shrestha Portfolio & Executive CMS Platform — Canonical PostgreSQL Seed (DML)
 -- Target: PostgreSQL 14+ / 15+ / 16+ / Google Cloud SQL
--- Synchronized with prisma/schema.prisma, schema.sql, and src/db/seed.ts
--- Architecture: Idempotent UPSERT DML with dynamic FK resolution and sequence sync
--- Note: If setting up a completely blank database from scratch, run `schema.sql` first.
+-- Synchronized with:
+--   - prisma/schema.prisma
+--   - src/db/schema.ts
+--   - schema.sql
+--   - src/db/seed.ts
+-- Architecture: 18 Tables with Idempotent UPSERTs, Dynamic Foreign Keys, and Sequence Resync
 -- ==============================================================================
 
 -- ------------------------------------------------------------------------------
@@ -15,7 +18,8 @@ INSERT INTO users (uid, email, password_hash, is_active)
 VALUES ('admin_gunjan', 'gunjanstha01@gmail.com', 'gunjan2026', true)
 ON CONFLICT (email) DO UPDATE SET
     uid = EXCLUDED.uid,
-    is_active = true,
+    is_active = EXCLUDED.is_active,
+    password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash),
     updated_at = NOW();
 
 -- 1.2 Executive Profile
@@ -30,7 +34,9 @@ INSERT INTO profiles (
     'Gunjan Shrestha',
     'Multidisciplinary Founder & Operator — Operations, Finance, Tech & Design',
     'Multidisciplinary founder and operator based in Kathmandu, focused on building businesses that can scale beyond local markets and operate at an international level.',
-    'I believe people are defined by their work and their commitment to continuous improvement—learning from mistakes, taking responsibility, and consistently raising the bar. My background spans founding and operating ventures from the ground up: managing technology stacks, brand design, custom fine jewellery craftsmanship, and end-to-end digital strategies, alongside leading office operations, financial accounts, reporting, and cross-functional teams in software development and UI design.\n\nAlongside this, I have built extensive expertise in accounting, company auditing, and the legal and compliance frameworks required to run well-structured businesses. My focus is expanding this to international standards to build and scale multinational ventures combining strong operations, sound financial governance, and thoughtful brand strategy.',
+    'I believe people are defined by their work and their commitment to continuous improvement—learning from mistakes, taking responsibility, and consistently raising the bar. My background spans founding and operating ventures from the ground up: managing technology stacks, brand design, custom fine jewellery craftsmanship, and end-to-end digital strategies, alongside leading office operations, financial accounts, reporting, and cross-functional teams in software development and UI design.
+
+Alongside this, I have built extensive expertise in accounting, company auditing, and the legal and compliance frameworks required to run well-structured businesses. My focus is expanding this to international standards to build and scale multinational ventures combining strong operations, sound financial governance, and thoughtful brand strategy.',
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
     'https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=800&auto=format&fit=crop',
     '1997-01-01',
@@ -45,7 +51,7 @@ INSERT INTO profiles (
     '+977 9800000000',
     'Kathmandu, Nepal',
     'https://www.gunjanshrestha.com.np',
-    'Available for Strategic Advisory & Multinational Ventures',
+    'available',
     'Accepting new executive advisory, bespoke jewellery commissions, and cross-border ventures.',
     'UTC+5:45 (Kathmandu)',
     'Within 24 Hours',
@@ -57,13 +63,22 @@ INSERT INTO profiles (
     long_bio = EXCLUDED.long_bio,
     profile_image_url = EXCLUDED.profile_image_url,
     visiting_card_image_url = EXCLUDED.visiting_card_image_url,
+    date_of_birth = EXCLUDED.date_of_birth,
+    address = EXCLUDED.address,
     email = EXCLUDED.email,
     alternate_email = EXCLUDED.alternate_email,
+    primary_email_label = EXCLUDED.primary_email_label,
+    alternate_email_label = EXCLUDED.alternate_email_label,
     phone = EXCLUDED.phone,
+    secondary_phone = EXCLUDED.secondary_phone,
+    phone_display_option = EXCLUDED.phone_display_option,
+    whatsapp_number = EXCLUDED.whatsapp_number,
     location = EXCLUDED.location,
     website = EXCLUDED.website,
     availability_status = EXCLUDED.availability_status,
     availability_custom_note = EXCLUDED.availability_custom_note,
+    timezone = EXCLUDED.timezone,
+    response_time = EXCLUDED.response_time,
     languages_spoken = EXCLUDED.languages_spoken,
     updated_at = NOW();
 
@@ -72,7 +87,7 @@ INSERT INTO site_settings (
     id, site_name, site_description, canonical_url, logo_url, favicon_url, profile_image_url,
     email, phone, location, footer_text, accent_color, maintenance_mode,
     analytics_enabled, default_seo_title, default_seo_description, default_og_image_url,
-    seo_keywords, allow_indexing
+    seo_keywords, allow_indexing, google_site_verification, google_analytics_id, custom_head_snippet
 ) VALUES (
     1,
     'Gunjan Shrestha | Founder & Operator',
@@ -92,17 +107,32 @@ INSERT INTO site_settings (
     'Multidisciplinary Founder & Operator based in Kathmandu, Nepal.',
     'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1200&auto=format&fit=crop',
     'Gunjan Shrestha, Founder, Operations, Finance, Audit, Fine Jewellery, Nepal, Technology',
-    true
+    true,
+    NULL,
+    NULL,
+    NULL
 ) ON CONFLICT (id) DO UPDATE SET
     site_name = EXCLUDED.site_name,
     site_description = EXCLUDED.site_description,
     canonical_url = EXCLUDED.canonical_url,
+    logo_url = EXCLUDED.logo_url,
+    favicon_url = EXCLUDED.favicon_url,
+    profile_image_url = EXCLUDED.profile_image_url,
     email = EXCLUDED.email,
+    phone = EXCLUDED.phone,
     location = EXCLUDED.location,
+    footer_text = EXCLUDED.footer_text,
     accent_color = EXCLUDED.accent_color,
+    maintenance_mode = EXCLUDED.maintenance_mode,
+    analytics_enabled = EXCLUDED.analytics_enabled,
     default_seo_title = EXCLUDED.default_seo_title,
     default_seo_description = EXCLUDED.default_seo_description,
+    default_og_image_url = EXCLUDED.default_og_image_url,
     seo_keywords = EXCLUDED.seo_keywords,
+    allow_indexing = EXCLUDED.allow_indexing,
+    google_site_verification = EXCLUDED.google_site_verification,
+    google_analytics_id = EXCLUDED.google_analytics_id,
+    custom_head_snippet = EXCLUDED.custom_head_snippet,
     updated_at = NOW();
 
 -- 1.4 Academic Qualifications
@@ -220,8 +250,11 @@ ON CONFLICT (slug) DO UPDATE SET
     updated_at = NOW();
 
 -- 1.9 Projects (Case Studies)
-INSERT INTO projects (title, slug, category, short_summary, overview, problem, approach, design, technology, result, hero_image, featured, published, display_order)
-VALUES
+INSERT INTO projects (
+    title, slug, category, short_summary, overview, problem, approach, design,
+    technology, result, hero_image, live_url, github_url, seo_title, seo_description,
+    canonical_url, featured, published, display_order
+) VALUES
 (
     'Gunjan Fine Jewellery: Global Bespoke Atelier',
     'gunjan-fine-jewellery-atelier',
@@ -234,6 +267,11 @@ VALUES
     'Matrix 3D CAD, Rhino 3D, High-Resolution 3D Wax Printers, React E-Commerce Portal, PostgreSQL.',
     'Delivered dozens of bespoke bridal and ceremonial heirlooms across Nepal, the US, and Australia with zero defect returns.',
     'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop',
+    'https://www.gunjanshrestha.com.np',
+    'https://github.com/gunjanstha01',
+    'Gunjan Fine Jewellery Atelier — Case Study',
+    'How Gunjan Shrestha founded and scaled a direct-to-consumer luxury atelier.',
+    'https://www.gunjanshrestha.com.np/projects/gunjan-fine-jewellery-atelier',
     true, true, 1
 ),
 (
@@ -248,6 +286,11 @@ VALUES
     'Node.js, PostgreSQL, TypeScript, Prisma ORM, Nginx, Linux VPS.',
     'Cut audit preparation cycle time by 65% and eliminated ledger discrepancy errors during statutory reviews.',
     'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1200&auto=format&fit=crop',
+    NULL,
+    'https://github.com/gunjanstha01',
+    'Enterprise Financial Ledger & Audit Engine',
+    'Algorithmic audit preparation and automated reconciliation engine.',
+    'https://www.gunjanshrestha.com.np/projects/enterprise-financial-audit-engine',
     true, true, 2
 ),
 (
@@ -262,6 +305,11 @@ VALUES
     'TypeScript, PostgreSQL, Express, QR Code Integration, Nginx.',
     'Achieved 100% chain-of-custody verification for every gold bar and certified diamond processed through the atelier.',
     'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop',
+    NULL,
+    'https://github.com/gunjanstha01',
+    'Himalayan Artisanal Supply Chain Tracker',
+    'Custodial chain-of-custody tracking for ethically sourced precious materials.',
+    'https://www.gunjanshrestha.com.np/projects/himalayan-artisanal-supply-chain',
     true, true, 3
 ),
 (
@@ -276,6 +324,11 @@ VALUES
     'React, Node.js, PostgreSQL, Tailwind CSS, Docker.',
     'Automated monthly payroll processing for 50+ staff with zero salary calculation errors.',
     'https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=1200&auto=format&fit=crop',
+    NULL,
+    'https://github.com/gunjanstha01',
+    'Cloud ERP & Payroll Management Portal',
+    'Multi-department corporate workforce and automated tax portal.',
+    'https://www.gunjanshrestha.com.np/projects/cloud-erp-payroll-portal',
     false, true, 4
 ),
 (
@@ -290,6 +343,11 @@ VALUES
     'WebGL, Three.js, React, Tailwind CSS, High-Resolution Asset Hosting.',
     'Increased international commission conversion rate by 45% within the first 6 months of deployment.',
     'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop',
+    NULL,
+    'https://github.com/gunjanstha01',
+    'High-Jewellery Interactive 3D Viewing Archive',
+    'Magnification-enabled digital showroom for bespoke heirloom commissions.',
+    'https://www.gunjanshrestha.com.np/projects/high-jewellery-digital-archive',
     false, true, 5
 )
 ON CONFLICT (slug) DO UPDATE SET
@@ -303,20 +361,25 @@ ON CONFLICT (slug) DO UPDATE SET
     technology = EXCLUDED.technology,
     result = EXCLUDED.result,
     hero_image = EXCLUDED.hero_image,
+    live_url = EXCLUDED.live_url,
+    github_url = EXCLUDED.github_url,
+    seo_title = EXCLUDED.seo_title,
+    seo_description = EXCLUDED.seo_description,
+    canonical_url = EXCLUDED.canonical_url,
     featured = EXCLUDED.featured,
     published = EXCLUDED.published,
     display_order = EXCLUDED.display_order,
     updated_at = NOW();
 
 -- 1.10 Project Images (Dynamic FK Resolution)
-INSERT INTO project_images (project_id, url, alt_text, caption, display_order)
+INSERT INTO project_images (project_id, url, alt_text, caption, width, height, display_order)
 VALUES
-((SELECT id FROM projects WHERE slug = 'gunjan-fine-jewellery-atelier'), 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop', 'CAD Render of Solitaire Ring', '3D Matrix CAD model preview before lost-wax casting', 1),
-((SELECT id FROM projects WHERE slug = 'gunjan-fine-jewellery-atelier'), 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop', 'Finished Micro-Pave Claw Setting in 18k Gold', 'Hand-finished pavé diamond setting under microscope', 2),
-((SELECT id FROM projects WHERE slug = 'enterprise-financial-audit-engine'), 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1200&auto=format&fit=crop', 'Ledger Reconciliation Dashboard UI', 'Real-time reconciliation feed and variance flags', 1),
-((SELECT id FROM projects WHERE slug = 'himalayan-artisanal-supply-chain'), 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop', 'Supply Chain Traceability Dashboard', 'Real-time batch verification and inspection checkpoints', 1),
-((SELECT id FROM projects WHERE slug = 'cloud-erp-payroll-portal'), 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=1200&auto=format&fit=crop', 'ERP Payroll Calculation Screen', 'Automated tax withholding and salary disbursement interface', 1),
-((SELECT id FROM projects WHERE slug = 'high-jewellery-digital-archive'), 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop', '360 Interactive Diamond Viewer', 'High-resolution digital showcase for bespoke private commissions', 1)
+((SELECT id FROM projects WHERE slug = 'gunjan-fine-jewellery-atelier'), 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop', 'CAD Render of Solitaire Ring', '3D Matrix CAD model preview before lost-wax casting', 1200, 800, 1),
+((SELECT id FROM projects WHERE slug = 'gunjan-fine-jewellery-atelier'), 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop', 'Finished Micro-Pave Claw Setting in 18k Gold', 'Hand-finished pavé diamond setting under microscope', 1200, 800, 2),
+((SELECT id FROM projects WHERE slug = 'enterprise-financial-audit-engine'), 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1200&auto=format&fit=crop', 'Ledger Reconciliation Dashboard UI', 'Real-time reconciliation feed and variance flags', 1200, 800, 1),
+((SELECT id FROM projects WHERE slug = 'himalayan-artisanal-supply-chain'), 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop', 'Supply Chain Traceability Dashboard', 'Real-time batch verification and inspection checkpoints', 1200, 800, 1),
+((SELECT id FROM projects WHERE slug = 'cloud-erp-payroll-portal'), 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?q=80&w=1200&auto=format&fit=crop', 'ERP Payroll Calculation Screen', 'Automated tax withholding and salary disbursement interface', 1200, 800, 1),
+((SELECT id FROM projects WHERE slug = 'high-jewellery-digital-archive'), 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?q=80&w=1200&auto=format&fit=crop', '360 Interactive Diamond Viewer', 'High-resolution digital showcase for bespoke private commissions', 1200, 800, 1)
 ON CONFLICT DO NOTHING;
 
 -- 1.11 Gallery Images
@@ -334,21 +397,37 @@ ON CONFLICT DO NOTHING;
 INSERT INTO blog_categories (name, slug, description)
 VALUES
 ('Corporate Governance & Auditing', 'corporate-governance', 'Insights on statutory audits, financial controls, and risk management.'),
-('Fine Jewellery & Metallurgy', 'fine-jewellery-metallurgy', 'Craftsmanship, 3D CAD modeling, and gems manufacturing.')
+('Fine Jewellery & Metallurgy', 'fine-jewellery-metallurgy', 'Craftsmanship, 3D CAD modeling, and gems manufacturing.'),
+('Operations & Systems Architecture', 'operations-systems', 'Workflows, logistical scaling, and cross-functional leadership.')
 ON CONFLICT (slug) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
     updated_at = NOW();
 
 -- 1.13 Blog Posts (with dynamic category_id foreign key linkage)
-INSERT INTO blog_posts (title, slug, excerpt, cover_image_url, content, category, category_id, reading_time, published_at, status, featured, tags, seo_title, seo_description)
-VALUES
+INSERT INTO blog_posts (
+    title, slug, excerpt, cover_image_url, content, category, category_id,
+    reading_time, published_at, status, featured, tags, seo_title, seo_description, canonical_url
+) VALUES
 (
     'The Anatomy of an Audit-Ready Enterprise: Lessons from the Field',
     'anatomy-of-audit-ready-enterprise',
     'Why clean internal controls and disciplined daily accounting are the true superpowers of companies that scale.',
     'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1200&auto=format&fit=crop',
-    '# The Anatomy of an Audit-Ready Enterprise\n\nMost founders view accounting as a post-mortem exercise: something you scramble to assemble when tax season knocks or when an external auditor arrives.\n\nIn reality, disciplined accounting is a proactive operational radar.\n\n### 1. The Principle of Single-Source Ledgers\nWhen receipts, payment gateways, and banking records live in different silos, discrepancies compound exponentially. A standardized chart of accounts ensures that every dollar has an unmistakable origin and purpose.\n\n### 2. Internal Control as Risk Mitigation\nSeparation of duties, dual-signoff authorization, and routine inventory reconciliations are not bureaucratic red tape—they are structural armor against fraud, leakage, and compliance penalties.\n\n### 3. Building for International Scale\nIf your vision involves foreign direct investment (FDI) or international joint ventures, your financial hygiene must meet global scrutiny from day one.',
+    '# The Anatomy of an Audit-Ready Enterprise
+
+Most founders view accounting as a post-mortem exercise: something you scramble to assemble when tax season knocks or when an external auditor arrives.
+
+In reality, disciplined accounting is a proactive operational radar.
+
+### 1. The Principle of Single-Source Ledgers
+When receipts, payment gateways, and banking records live in different silos, discrepancies compound exponentially. A standardized chart of accounts ensures that every dollar has an unmistakable origin and purpose.
+
+### 2. Internal Control as Risk Mitigation
+Separation of duties, dual-signoff authorization, and routine inventory reconciliations are not bureaucratic red tape—they are structural armor against fraud, leakage, and compliance penalties.
+
+### 3. Building for International Scale
+If your vision involves foreign direct investment (FDI) or international joint ventures, your financial hygiene must meet global scrutiny from day one.',
     'Corporate Governance & Auditing',
     (SELECT id FROM blog_categories WHERE slug = 'corporate-governance'),
     6,
@@ -357,14 +436,23 @@ VALUES
     true,
     ARRAY['Finance', 'Corporate Governance', 'Auditing', 'Operations'],
     'The Anatomy of an Audit-Ready Enterprise | Gunjan Shrestha',
-    'Practical insights on building financial hygiene and internal audit resilience from founder Gunjan Shrestha.'
+    'Practical insights on building financial hygiene and internal audit resilience from founder Gunjan Shrestha.',
+    'https://www.gunjanshrestha.com.np/blog/anatomy-of-audit-ready-enterprise'
 ),
 (
     'Bridging Traditional Metallurgy with 3D CAD: The Future of Fine Jewellery',
     'bridging-metallurgy-with-3d-cad',
     'How modern computational modeling elevates centuries-old goldsmithing without sacrificing the artisan soul.',
     'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?q=80&w=1200&auto=format&fit=crop',
-    '# Bridging Traditional Metallurgy with 3D CAD\n\nFine jewellery has existed for millennia, but precision CAD technology has fundamentally transformed how bespoke pieces come to life.\n\n### Tolerances at the Sub-Millimeter Scale\nWhen setting a 2-carat natural diamond, a variance of 0.05mm in prong thickness determines whether a stone sits securely for fifty years or risks coming loose. 3D modeling enables stress-testing prong geometries before the gold is even cast.\n\n### Respecting the Human Hand\nTechnology never replaces the master goldsmith. While CAD models the matrix and 3D wax printers reproduce the form, the final filing, pavé bead setting, and mirror-buffing demand decades of tactile human craftsmanship.',
+    '# Bridging Traditional Metallurgy with 3D CAD
+
+Fine jewellery has existed for millennia, but precision CAD technology has fundamentally transformed how bespoke pieces come to life.
+
+### Tolerances at the Sub-Millimeter Scale
+When setting a 2-carat natural diamond, a variance of 0.05mm in prong thickness determines whether a stone sits securely for fifty years or risks coming loose. 3D modeling enables stress-testing prong geometries before the gold is even cast.
+
+### Respecting the Human Hand
+Technology never replaces the master goldsmith. While CAD models the matrix and 3D wax printers reproduce the form, the final filing, pavé bead setting, and mirror-buffing demand decades of tactile human craftsmanship.',
     'Fine Jewellery & Metallurgy',
     (SELECT id FROM blog_categories WHERE slug = 'fine-jewellery-metallurgy'),
     5,
@@ -373,30 +461,49 @@ VALUES
     true,
     ARRAY['Fine Jewellery', 'Manufacturing', 'CAD Design', 'Craftsmanship'],
     'Bridging Traditional Metallurgy with 3D CAD | Gunjan Shrestha',
-    'Exploration of digital fabrication and artisanal goldsmithing in contemporary bespoke jewellery.'
+    'Exploration of digital fabrication and artisanal goldsmithing in contemporary bespoke jewellery.',
+    'https://www.gunjanshrestha.com.np/blog/bridging-metallurgy-with-3d-cad'
 ),
 (
     'Operational Velocity: Why Clear SOPs Trump Raw Talent',
     'operational-velocity-clear-sops',
     'How documented workflows and explicit handoffs empower teams to deliver exceptional quality consistently.',
     'https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=1200&auto=format&fit=crop',
-    '# Operational Velocity: Why Clear SOPs Trump Raw Talent\n\nTalented individuals can produce miracles, but systems produce consistency.\n\nWhen a venture relies solely on individual heroics, growth hits a glass ceiling. The moment key personnel are absent, quality fluctuates.\n\n### 1. Codifying the Standard\nEvery recurring action—from inventory audits to client onboarding—must have a clear checklist. It removes guesswork and accelerates training.\n\n### 2. Eliminating Friction at the Handoff\nMost operational delays occur between teams: when design finishes and engineering begins, or when sales closes and fulfillment takes over. Clear interface definitions solve this friction.',
-    'Operations & Management',
-    NULL,
+    '# Operational Velocity: Why Clear SOPs Trump Raw Talent
+
+Talented individuals can produce miracles, but systems produce consistency.
+
+When a venture relies solely on individual heroics, growth hits a glass ceiling. The moment key personnel are absent, quality fluctuates.
+
+### 1. Codifying the Standard
+Every recurring action—from inventory audits to client onboarding—must have a clear checklist. It removes guesswork and accelerates training.
+
+### 2. Eliminating Friction at the Handoff
+Most operational delays occur between teams: when design finishes and engineering begins, or when sales closes and fulfillment takes over. Clear interface definitions solve this friction.',
+    'Operations & Systems Architecture',
+    (SELECT id FROM blog_categories WHERE slug = 'operations-systems'),
     4,
     NOW(),
     'PUBLISHED',
     true,
     ARRAY['Operations', 'Management', 'Productivity', 'Leadership'],
     'Operational Velocity: Why Clear SOPs Trump Raw Talent | Gunjan Shrestha',
-    'Key operational principles for structuring scalable business processes.'
+    'Key operational principles for structuring scalable business processes.',
+    'https://www.gunjanshrestha.com.np/blog/operational-velocity-clear-sops'
 ),
 (
     'The Architecture of Sound Financial Internal Controls',
     'architecture-of-financial-internal-controls',
     'A practical framework for preventing cash leakages and ensuring ledger integrity in growing enterprises.',
     'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=1200&auto=format&fit=crop',
-    '# The Architecture of Sound Financial Internal Controls\n\nInternal controls are frequently misunderstood as lack of trust. In truth, they protect both the business and its employees by eliminating ambiguity.\n\n### Core Pillars of Control\n- **Dual Authorization**: Payments above predefined thresholds require independent review.\n- **Bank Recs in Real Time**: Monthly reconciliations are too late; weekly checks catch discrepancies while memories are fresh.\n- **Vendor Due Diligence**: Verifying tax registration numbers and official banking credentials before processing disbursements.',
+    '# The Architecture of Sound Financial Internal Controls
+
+Internal controls are frequently misunderstood as lack of trust. In truth, they protect both the business and its employees by eliminating ambiguity.
+
+### Core Pillars of Control
+- **Dual Authorization**: Payments above predefined thresholds require independent review.
+- **Bank Recs in Real Time**: Monthly reconciliations are too late; weekly checks catch discrepancies while memories are fresh.
+- **Vendor Due Diligence**: Verifying tax registration numbers and official banking credentials before processing disbursements.',
     'Corporate Governance & Auditing',
     (SELECT id FROM blog_categories WHERE slug = 'corporate-governance'),
     5,
@@ -405,23 +512,29 @@ VALUES
     false,
     ARRAY['Finance', 'Internal Controls', 'Compliance', 'Audit'],
     'The Architecture of Sound Financial Internal Controls | Gunjan Shrestha',
-    'Framework for building corporate financial integrity and fraud-resistant ledgers.'
+    'Framework for building corporate financial integrity and fraud-resistant ledgers.',
+    'https://www.gunjanshrestha.com.np/blog/architecture-of-financial-internal-controls'
 ),
 (
     'Scaling From Kathmandu: Operational Lessons in Cross-Border Logistics',
     'scaling-from-kathmandu-cross-border-logistics',
     'Navigating customs, insurance, and high-value international delivery from an emerging Himalayan market.',
     'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1200&auto=format&fit=crop',
-    '# Scaling From Kathmandu: Cross-Border Logistics\n\nShipping bespoke fine jewellery across international borders requires mastering international trade regulations, customs declarations, and insured armored transit.\n\nEvery export must satisfy statutory export clearances, hallmarking certification, and courier insurance liability limits. Building these pipelines turns regional craftsmanship into a viable multinational enterprise.',
-    'Operations & Management',
-    NULL,
+    '# Scaling From Kathmandu: Cross-Border Logistics
+
+Shipping bespoke fine jewellery across international borders requires mastering international trade regulations, customs declarations, and insured armored transit.
+
+Every export must satisfy statutory export clearances, hallmarking certification, and courier insurance liability limits. Building these pipelines turns regional craftsmanship into a viable multinational enterprise.',
+    'Operations & Systems Architecture',
+    (SELECT id FROM blog_categories WHERE slug = 'operations-systems'),
     6,
     NOW(),
     'PUBLISHED',
     false,
     ARRAY['Logistics', 'Global Trade', 'Supply Chain', 'Jewellery'],
     'Scaling From Kathmandu: Cross-Border Logistics | Gunjan Shrestha',
-    'Lessons in shipping luxury high-value products internationally from Nepal.'
+    'Lessons in shipping luxury high-value products internationally from Nepal.',
+    'https://www.gunjanshrestha.com.np/blog/scaling-from-kathmandu-cross-border-logistics'
 )
 ON CONFLICT (slug) DO UPDATE SET
     title = EXCLUDED.title,
@@ -436,6 +549,7 @@ ON CONFLICT (slug) DO UPDATE SET
     tags = EXCLUDED.tags,
     seo_title = EXCLUDED.seo_title,
     seo_description = EXCLUDED.seo_description,
+    canonical_url = EXCLUDED.canonical_url,
     updated_at = NOW();
 
 -- 1.14 Content Categories
@@ -470,29 +584,36 @@ VALUES
 ('Elena Rostova', 'elena.rostova@techscale.io', 'Executive Advisory & Operations Consulting', 'Hi Gunjan, we are scaling cross-functional teams in South Asia and would love to consult with you regarding financial control and operations management.', 'REPLIED')
 ON CONFLICT DO NOTHING;
 
--- 1.17 System Initialization Audit Log
+-- 1.17 Active Admin Session
+INSERT INTO admin_sessions (id, device_type, browser, os, ip_address, location, screen_resolution, last_active_at, created_at)
+VALUES
+('sess_master_admin_session', 'desktop', 'Chrome 124', 'macOS Sonoma', '127.0.0.1', 'Kathmandu, Nepal', '2560x1440', NOW(), NOW())
+ON CONFLICT (id) DO UPDATE SET
+    last_active_at = NOW();
+
+-- 1.18 System Initialization Audit Log
 INSERT INTO audit_logs (user_id, action, entity_type, entity_id, metadata)
 VALUES
-('admin_gunjan', 'DATABASE_SEED', 'SYSTEM', '1', '{"status": "SUCCESS", "message": "Database initialized with clean synchronized production dataset", "version": "2.0.0"}'::jsonb)
+('admin_gunjan', 'DATABASE_SEED', 'SYSTEM', '1', '{"status": "SUCCESS", "message": "Database initialized with clean synchronized production dataset", "version": "2.1.0"}'::jsonb)
 ON CONFLICT DO NOTHING;
 
 -- ------------------------------------------------------------------------------
 -- 2. SEQUENCE SYNCHRONIZATION (Ensures CMS autoincrement never hits collisions)
 -- ------------------------------------------------------------------------------
-SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1)) FROM users;
-SELECT setval(pg_get_serial_sequence('profiles', 'id'), COALESCE(MAX(id), 1)) FROM profiles;
-SELECT setval(pg_get_serial_sequence('educations', 'id'), COALESCE(MAX(id), 1)) FROM educations;
-SELECT setval(pg_get_serial_sequence('experiences', 'id'), COALESCE(MAX(id), 1)) FROM experiences;
-SELECT setval(pg_get_serial_sequence('skill_categories', 'id'), COALESCE(MAX(id), 1)) FROM skill_categories;
-SELECT setval(pg_get_serial_sequence('skills', 'id'), COALESCE(MAX(id), 1)) FROM skills;
-SELECT setval(pg_get_serial_sequence('services', 'id'), COALESCE(MAX(id), 1)) FROM services;
-SELECT setval(pg_get_serial_sequence('projects', 'id'), COALESCE(MAX(id), 1)) FROM projects;
-SELECT setval(pg_get_serial_sequence('project_images', 'id'), COALESCE(MAX(id), 1)) FROM project_images;
-SELECT setval(pg_get_serial_sequence('gallery_images', 'id'), COALESCE(MAX(id), 1)) FROM gallery_images;
-SELECT setval(pg_get_serial_sequence('blog_categories', 'id'), COALESCE(MAX(id), 1)) FROM blog_categories;
-SELECT setval(pg_get_serial_sequence('blog_posts', 'id'), COALESCE(MAX(id), 1)) FROM blog_posts;
-SELECT setval(pg_get_serial_sequence('contact_messages', 'id'), COALESCE(MAX(id), 1)) FROM contact_messages;
-SELECT setval(pg_get_serial_sequence('social_links', 'id'), COALESCE(MAX(id), 1)) FROM social_links;
-SELECT setval(pg_get_serial_sequence('site_settings', 'id'), COALESCE(MAX(id), 1)) FROM site_settings;
-SELECT setval(pg_get_serial_sequence('content_categories', 'id'), COALESCE(MAX(id), 1)) FROM content_categories;
-SELECT setval(pg_get_serial_sequence('audit_logs', 'id'), COALESCE(MAX(id), 1)) FROM audit_logs;
+SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE((SELECT MAX(id) FROM users), 1), true);
+SELECT setval(pg_get_serial_sequence('profiles', 'id'), COALESCE((SELECT MAX(id) FROM profiles), 1), true);
+SELECT setval(pg_get_serial_sequence('educations', 'id'), COALESCE((SELECT MAX(id) FROM educations), 1), true);
+SELECT setval(pg_get_serial_sequence('experiences', 'id'), COALESCE((SELECT MAX(id) FROM experiences), 1), true);
+SELECT setval(pg_get_serial_sequence('skill_categories', 'id'), COALESCE((SELECT MAX(id) FROM skill_categories), 1), true);
+SELECT setval(pg_get_serial_sequence('skills', 'id'), COALESCE((SELECT MAX(id) FROM skills), 1), true);
+SELECT setval(pg_get_serial_sequence('services', 'id'), COALESCE((SELECT MAX(id) FROM services), 1), true);
+SELECT setval(pg_get_serial_sequence('projects', 'id'), COALESCE((SELECT MAX(id) FROM projects), 1), true);
+SELECT setval(pg_get_serial_sequence('project_images', 'id'), COALESCE((SELECT MAX(id) FROM project_images), 1), true);
+SELECT setval(pg_get_serial_sequence('gallery_images', 'id'), COALESCE((SELECT MAX(id) FROM gallery_images), 1), true);
+SELECT setval(pg_get_serial_sequence('blog_categories', 'id'), COALESCE((SELECT MAX(id) FROM blog_categories), 1), true);
+SELECT setval(pg_get_serial_sequence('blog_posts', 'id'), COALESCE((SELECT MAX(id) FROM blog_posts), 1), true);
+SELECT setval(pg_get_serial_sequence('contact_messages', 'id'), COALESCE((SELECT MAX(id) FROM contact_messages), 1), true);
+SELECT setval(pg_get_serial_sequence('social_links', 'id'), COALESCE((SELECT MAX(id) FROM social_links), 1), true);
+SELECT setval(pg_get_serial_sequence('site_settings', 'id'), COALESCE((SELECT MAX(id) FROM site_settings), 1), true);
+SELECT setval(pg_get_serial_sequence('content_categories', 'id'), COALESCE((SELECT MAX(id) FROM content_categories), 1), true);
+SELECT setval(pg_get_serial_sequence('audit_logs', 'id'), COALESCE((SELECT MAX(id) FROM audit_logs), 1), true);

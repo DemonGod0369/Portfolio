@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { prisma } from './index.ts';
 import { ensureDatabaseSchema } from './migrate.ts';
+import { hashPassword } from '../api/common/utils/password.utils.ts';
 
 /**
  * ==============================================================================
@@ -29,7 +30,8 @@ async function main() {
     console.log('   Schema check verified.');
 
     // 2. Super Administrator User
-    console.log('2. Seeding Super Administrator User...');
+    console.log('2. Seeding Super Administrator User with secure bcrypt password hash...');
+    const secureDefaultHash = await hashPassword('gunjan2026');
     const adminUser = await prisma.user.upsert({
       where: { email: 'gunjanstha01@gmail.com' },
       update: {
@@ -39,7 +41,7 @@ async function main() {
       create: {
         uid: 'admin_gunjan',
         email: 'gunjanstha01@gmail.com',
-        passwordHash: 'gunjan2026',
+        passwordHash: secureDefaultHash,
         isActive: true,
       },
     });

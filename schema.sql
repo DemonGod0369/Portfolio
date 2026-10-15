@@ -1,7 +1,12 @@
 -- ==============================================================================
 -- Gunjan Shrestha Portfolio & Executive CMS Platform — Complete Database Schema (DDL)
 -- Target: PostgreSQL 14+ / 15+ / 16+ / Google Cloud SQL
--- Synchronized with prisma/schema.prisma, src/types.ts, and src/db/seed.ts
+-- Synchronized with:
+--   - prisma/schema.prisma
+--   - src/db/schema.ts
+--   - schema.ts
+--   - seed.sql
+--   - src/types.ts
 -- Architecture: 18 Tables with Primary Keys, Foreign Keys, Unique Indexes, and Defaults
 -- ==============================================================================
 

@@ -1,5 +1,20 @@
 import { prisma } from '../connection.ts';
 import { formatRow } from './common.ts';
+import {
+  hashPassword,
+  comparePassword,
+  validatePasswordStrength,
+  isBcryptHash,
+  sanitizeUser,
+} from '../../api/common/utils/password.utils.ts';
+
+export {
+  hashPassword,
+  comparePassword,
+  validatePasswordStrength,
+  isBcryptHash,
+  sanitizeUser,
+};
 
 export async function getAuditLogs(limitCount = 100) {
   const rows = await prisma.auditLog.findMany({
@@ -55,11 +70,12 @@ export async function verifyAdminLogin(email: string, passwordAttempt: string) {
     // Only provision default administrator if table is completely empty
     const userCount = await prisma.user.count();
     if (userCount === 0 && normalizedEmail === 'gunjanstha01@gmail.com' && passwordAttempt === 'gunjan2026') {
+      const securePasswordHash = await hashPassword('gunjan2026');
       const created = await prisma.user.create({
         data: {
           uid: 'admin_gunjan',
           email: 'gunjanstha01@gmail.com',
-          passwordHash: 'gunjan2026',
+          passwordHash: securePasswordHash,
           isActive: true,
           lastLoginAt: new Date(),
         },
@@ -69,11 +85,21 @@ export async function verifyAdminLogin(email: string, passwordAttempt: string) {
     return { success: false, message: 'Invalid email or password.', error: 'Invalid credentials' };
   }
 
-  if (user.passwordHash && user.passwordHash === passwordAttempt) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
+  const isPasswordValid = await comparePassword(passwordAttempt, user.passwordHash || '');
+  if (isPasswordValid) {
+    // Transparently upgrade legacy plaintext password to bcrypt hash in the database
+    if (user.passwordHash && !isBcryptHash(user.passwordHash)) {
+      const upgradedHash = await hashPassword(passwordAttempt);
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { passwordHash: upgradedHash, lastLoginAt: new Date() },
+      });
+    } else {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+    }
     return { success: true, email: user.email, message: 'Authentication successful', user };
   }
 
@@ -102,7 +128,15 @@ export async function updateAdminCredentials(currentEmail: string, newEmail?: st
     updateData.email = newEmail.trim().toLowerCase();
   }
   if (newPassword && newPassword.trim()) {
-    updateData.passwordHash = newPassword.trim();
+    const passwordValidation = validatePasswordStrength(newPassword.trim());
+    if (!passwordValidation.valid) {
+      return {
+        success: false,
+        error: passwordValidation.error || 'Password does not meet security requirements.',
+      };
+    }
+    // Hash password with bcrypt before writing to the database
+    updateData.passwordHash = await hashPassword(newPassword.trim());
   }
 
   const updated = await prisma.user.update({
@@ -206,10 +240,11 @@ export async function resetPasswordWithCode(email: string, code: string, newPass
   const normalizedEmail = email.trim().toLowerCase();
   const cleanCode = code.trim();
 
-  if (!newPassword || newPassword.length < 6) {
+  const passwordValidation = validatePasswordStrength(newPassword);
+  if (!passwordValidation.valid) {
     return {
       success: false,
-      error: 'New password must be at least 6 characters long.',
+      error: passwordValidation.error || 'Password does not meet security requirements.',
     };
   }
 
@@ -243,11 +278,12 @@ export async function resetPasswordWithCode(email: string, code: string, newPass
     };
   }
 
-  // Update password in PostgreSQL
+  // Hash password using bcrypt before persisting to PostgreSQL
+  const securePasswordHash = await hashPassword(newPassword.trim());
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      passwordHash: newPassword,
+      passwordHash: securePasswordHash,
       updatedAt: new Date(),
     },
   });
